@@ -1,0 +1,25 @@
+{
+  "name": "node-host",
+  "version": "1.0.0",
+  "description": "It is a host for app which manage water pump valves.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "start:dev": "node server.js",
+    "start:sudo": "sudo node server.js",
+    "restart": "npm run stop && npm run start",
+    "stop": "sudo kill -9 $(sudo lsof -t -i:3100) || true && killall -9 node || true"
+  },
+  "author": "tm",
+  "license": "ISC",
+  "dependencies": {
+    "awilix": "^12.0.4",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "pigpio": "^3.3.1",
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7"
+  }
+}
