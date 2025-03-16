@@ -6,6 +6,8 @@ import addEndpointsLogging from './src/middleware/addEndpointsLogging.js';
 import router  from './src/controllers/gpioController.js'
 import StatusCode from './src/models/StatusCode.js';
 import setupProcessHandlers from './src/middleware/processHandlers.js'
+import cors from 'cors'
+
 const app = express();
 const PORT = 3200;
 const loggerService = container.resolve('loggerService')
@@ -16,6 +18,10 @@ loggerService.addFileLogging = true
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+app.use(cors({
+  orign: 'http://localhost:5173'
+}))
 
 app.use(express.json())
 app.use(express.static(path.join(dirname, 'client')))

@@ -201,7 +201,6 @@ router.post('/task/unassign', [
   "state: "LOW"
 }
 */
-
 //Open or close all Valves of Task
 router.post('/task/state', [
   body('id').isInt().withMessage('Id must be int.')
@@ -271,7 +270,6 @@ router.post('/pump', [
   return res.status(addPumpResult.status).json(addPumpResult)
 })
 
-
 /*
 {
   "pinNo": 5
@@ -295,6 +293,8 @@ router.patch('/pump', [
       isSucces: false,
       message: `Validation errors: ${errors.array().map(e => e.msg).join(', ')}`,
     })
+
+  const pinNo = req.body.pinNo
 
   const changePumpPinNoResult = await taskManager.changePumpPinNo(pinNo)
   
@@ -459,7 +459,7 @@ router.post('/valve/state', [
   const errors = validationResult(req)
   if (!errors.isEmpty())
     return res.status(StatusCode.BadRequest).json({
-      isSucces: false,
+      isSuccess: false,
       message: `Validation errors: ${errors.array().map(e => e.msg).join(', ')}`,
       status: StatusCode.BadRequest
     })
@@ -479,6 +479,7 @@ router.post('/valve/state', [
 router.get('/isSchedulerEnabled', (req, res) => {
   const isSchedulerEnabled = taskManager.getIsSchedulerEnabled()
   return res.status(StatusCode.Ok).json({
+    isSuccess: true,
     message: isSchedulerEnabled ? 'Scheduler is enabled.' : 'Scheduler is disabled.',
     result: isSchedulerEnabled,
     status: StatusCode.Ok
@@ -490,11 +491,13 @@ router.post('/runScheduler', (req, res) => {
   const result = taskManager.runScheduler()
   if (result) {
     return res.status(StatusCode.Ok).json({
-      message: 'Scheduler has been started.',
+      isSuccess: true,
+      messages: 'Scheduler has been started.',
       isEnabled: true,
     })
   } else {
     return res.status(StatusCode.InternalServerError).json({
+      isSuccess: false,
       message: internalServerError,
       isEnabled: false,
     })
@@ -506,11 +509,13 @@ router.post('/stopScheduler', (req, res) => {
   const result = taskManager.stopScheduler()
   if (result) {
     return res.status(StatusCode.Ok).json({
+      isSuccess: true,
       message: 'Scheduler has been stopped.',
       isEnabled: false,
     })
   } else {
     res.status(StatusCode.InternalServerError).json({
+      isSuccess: false,
       message: internalServerError,
       isEnabled: undefined,
     })
@@ -534,7 +539,7 @@ router.get('/settings/byKey/:key', [
   const errors = validationResult(req)
   if (!errors.isEmpty())
     return res.status(StatusCode.BadRequest).json({
-      isSucces: false,
+      isSuccess: false,
       message: `Validation errors: ${errors.array().map(e => e.msg).join(', ')}`,
       status: StatusCode.BadRequest
     })
@@ -561,7 +566,7 @@ router.patch('/settings', [
   const errors = validationResult(req)
   if (!errors.isEmpty())
     return res.status(StatusCode.BadRequest).json({
-      isSucces: false,
+      isSuccess: false,
       message: `Validation errors: ${errors.array().map(e => e.msg).join(', ')}`,
       status: StatusCode.BadRequest
     })
