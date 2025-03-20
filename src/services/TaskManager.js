@@ -2,7 +2,7 @@ import Period from '../models/Period.js'
 import { isGpioCommonPin } from '../helpers/pinHelper.js'
 import StatusCode from '../models/StatusCode.js'
 import PinState from '../models/PinState.js'
-import { CreateServerTask } from '../helpers/taskHelper.js'
+import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
 import { taskDelay, repeatTask } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
@@ -41,7 +41,7 @@ export default class TaskManager {
     init = async () => {
         try {
             await this.#initSettings()
-            const pump = await this.#repository.getDeviceByName(Pump)
+            const pump = await this.#repository.getDeviceByName('Pump')
             this.#pump = pump ? CreateServerDevice(pump) : null
 
             const tasks = await this.#repository.getTasks()
@@ -108,9 +108,9 @@ export default class TaskManager {
             return { isSuccess: false, message: taskWithTheSameName, status: StatusCode.BadRequest }
 
         if (this.#isInTaskDeviceWithTheSamePin(task))
-            return { isSuccess: false, message: 'This task contains devices with the same pin number.', status: StatusCode.BadRequest }
+            return { isSuccess: false, message: 'This Task contains devices with the same pin number.', status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         const resultTask = await this.#repository.addTask(task)
         if (!resultTask.isSuccess)
@@ -122,7 +122,7 @@ export default class TaskManager {
         return {
             isSuccess: true,
             message: 'Task has been added successful.',
-            result: newTask,
+            result: CreateClientTask(newTask),
             status: resultTask.status
         }
     })
@@ -140,9 +140,12 @@ export default class TaskManager {
                 }
 
             if (this.#isTheSameTask(task))
-                return { isSuccess: false, message: 'The same Task already exists.', status: StatusCode.BadRequest }
+                return { 
+                    isSuccess: false, 
+                    message: 'The same Task already exists.', 
+                    status: StatusCode.BadRequest }
 
-            this.stopScheduler()
+            this.pauseScheduler()
 
             const updateResult = await this.#repository.updateTask(task)
             if (!updateResult.isSuccess)
@@ -162,15 +165,15 @@ export default class TaskManager {
             beforeUpdateTask.period = task.period
             beforeUpdateTask.isActive = task.isActive
 
-            const updatedIndex = this.#valveTasks.findIndex(t => t.id == task.id)
-            this.#valveTasks.splice(updatedIndex, 1, CreateServerTask(beforeUpdateTask))
+            // const updatedIndex = this.#valveTasks.findIndex(t => t.id == task.id)
+            // this.#valveTasks.splice(updatedIndex, 1, CreateServerTask(beforeUpdateTask))
 
             const updatedTask = this.#valveTasks.find(t => t.id == task.id)
 
             return {
                 isSuccess: true,
-                message: 'Task updated successfull.',
-                result: updatedTask,
+                message: 'Task updated successful.',
+                result: CreateClientTask(updatedTask),
                 status: StatusCode.Ok
             }
         })
@@ -183,7 +186,7 @@ export default class TaskManager {
         if (!task)
             return { isSuccess: false, message: taskNotFound, status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         task.devices?.forEach(d => d.gpioPin.destroy())
         const taskIndex = this.#valveTasks.indexOf(task)
@@ -195,8 +198,15 @@ export default class TaskManager {
 
         const result = await this.#repository.deleteTask(id)
 
-        return result ? { isSuccess: true, message: 'Task has been deleted.' } :
-            { isSuccess: false, message: 'Delete Task, database returned error.', status: StatusCode.InternalServerError }
+        return result ? { 
+            isSuccess: true, 
+            message: 'Task has been deleted.' ,
+            status: StatusCode.Ok
+        } :
+            { 
+                isSuccess: false, 
+                message: 'Delete Task, database returned error.', 
+                status: StatusCode.InternalServerError }
     })
 
     assignToTask = async (taskId, valveId) =>
@@ -243,26 +253,34 @@ export default class TaskManager {
             }
         })
 
-    unassignFormTask = async (taskId, valveId) =>
+    unassignFromTask = async (taskId, valveId) =>
         await this.#trackScheduler(async () => {
 
-            this.stopScheduler()
+            this.pauseScheduler()
 
-            const unassignResult = await taskManager.unassignFromDevice(taskId, valveId)
+            const unassignResult = await this.#repository.unassignFromTask(taskId, valveId)
             if (!unassignResult.isSuccess)
                 return unassignResult
 
             const task = this.#valveTasks.find(t => t.id == taskId)
-            const valveIdToUnassign = task.devices.indexOf(valveId)
-            if (!valveIdToUnassign)
+            const valveToUnassign = task.devices.find(d => d.id == valveId)
+            if (!valveToUnassign)
                 return {
                     isSuccess: false,
                     message: 'Find server Valve error.',
                     status: StatusCode.InternalServerError
                 }
+            const valveIndexToUnassign = task.devices.indexOf(valveToUnassign)
+            if (!valveIndexToUnassign) {
+                return {
+                    isSuccess: false,
+                    message: "Find server taak index error",
+                    status: StatusCode.InternalServerError
+                }
+            }
 
-            const unassignServerResult = task.devices.splice(valveIdToUnassign, 1)
-            if (unassignServerResult == 0)
+            const unassignServerResult = task.devices.splice(valveIndexToUnassign, 1)
+            if (!unassignServerResult)
                 return {
                     isSuccess: false,
                     message: 'Unassign server Valve returned error.',
@@ -313,17 +331,17 @@ export default class TaskManager {
 
         return {
             isSuccess: true,
-            result: serverValve,
+            result: CreateClientDevice(serverValve),
             status: StatusCode.Created
         }
     })
 
     updateValve = async valve => await this.#trackScheduler(async () => {
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         const updateResult = await this.#repository.updateDevice(valve)
-        if (!updateResult)
+        if (!updateResult.isSuccess)
             return {
                 isSuccess: false,
                 message: 'Update Valve returned error.',
@@ -342,7 +360,6 @@ export default class TaskManager {
 
         return {
             isSuccess: true,
-            result: updateResult,
             status: StatusCode.Ok
         }
     })
@@ -356,7 +373,7 @@ export default class TaskManager {
                 status: StatusCode.BadRequest
             }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         const deleteResult = await this.#repository.deleteDevice(id)
         if (!deleteResult || deleteResult == 0)
@@ -415,14 +432,14 @@ export default class TaskManager {
         if (!pinNo)
             return { isSuccess: false, message: emptyData, status: StatusCode.BadRequest }
 
-        const isPinReserved = this.#valveTasks.some(t => t.devices.some(d => d.pinNo == pinNo))
+        const isPinReserved = this.#valves.some(d => d.pinNo == pinNo)
         if (isPinReserved)
             return { isSuccess: false, message: 'This pin is alredy reserved by another device.', status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         const addPumpResult = await this.#repository.addDevice({
-            name: Pump,
+            name: 'Pump',
             pinNo: pinNo,
             type: Pump
         })
@@ -442,9 +459,13 @@ export default class TaskManager {
         if (!this.#pump)
             return { isSuccess: false, message: pumpNotExists, status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        const isPinReserved = this.#valves.some(d => d.pinNo == pinNo)
+        if (isPinReserved)
+            return { isSuccess: false, message: 'This pin is alredy reserved by another device.', status: StatusCode.BadRequest }
 
-        const pumpResult = await this.#repository.getDeviceByName(Pump)
+        this.pauseScheduler()
+
+        const pumpResult = await this.#repository.getDeviceByName('Pump')
         if (!pumpResult)
             return { isSuccess: false, message: 'Get pump returned error', status: StatusCode.InternalServerError }
 
@@ -456,25 +477,29 @@ export default class TaskManager {
             pinNo: pumpResult.pinNo,
             type: pumpResult.type
         })
-        if (!changePinResult || changePinResult == 0)
-            return { isSuccess: false, message: 'Updating Pump pin number in database returned error.', status: StatusCode.InternalServerError }
+        if (!changePinResult.isSuccess) {
+            return changePinResult
+        }
 
         this.#pump.pinNo = pinNo
 
-        return { isSuccess: true, message: 'The Pump pin number updated successful.', status: StatusCode.Ok }
+        return { 
+            isSuccess: true, 
+            message: 'The Pump pin number updated successful.', 
+            status: StatusCode.Ok }
     })
 
     deletePump = async () => await this.#trackScheduler(async () => {
         if (!this.#pump)
             return { isSuccess: false, message: pumpNotExists, status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         await this.turnOffPump(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
 
         const deleteResult = await this.#repository.deleteDevice(this.#pump.id)
-        if (!deleteResult || deleteResult == 0)
-            return { isSuccess: false, message: databasePumpError, status: StatusCode.InternalServerError }
+        if (!deleteResult.isSuccess)
+            return deleteResult
 
         this.#pump = null
 
@@ -486,7 +511,7 @@ export default class TaskManager {
         if (!pump)
             return { isSuccess: false, message: 'Pump device not found.', status: StatusCode.BadRequest }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         pump.gpioPin.setState(PinState.LOW)
 
@@ -538,7 +563,7 @@ export default class TaskManager {
                 status: StatusCode.BadRequest
             }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         if (state == PinState.HIGH) {
             const pumpResult = this.#ensurePumpTurnedOn()
@@ -683,7 +708,7 @@ export default class TaskManager {
                 status: StatusCode.BadRequest
             }
 
-        this.stopScheduler()
+        this.pauseScheduler()
 
         if (state == PinState.HIGH) {
             const pumpResult = this.#ensurePumpTurnedOn()
@@ -750,6 +775,13 @@ export default class TaskManager {
 
         return true
     }
+
+    pauseScheduler = () => {
+        this.#cancellationToken.isCancelled = true
+        this.#loggerService.logInfo('Scheduler has been paused.')
+
+        return true
+    }
     //#endregion
 
     //#region settings
@@ -777,22 +809,33 @@ export default class TaskManager {
         }
     }
 
-    updateSettingsValue = async (key, value) => {
-        if (!this.#settings.some(s => s.key == key))
-            return {
-                isSuccess: false,
-                message: keyNotFound,
-                status: StatusCode.BadRequest
+    updateSettings = async (settings) => {
+        const result = {}
+
+        for (const setting of settings) {
+            if (!this.#settings.some(s => s.key == setting.key)) {
+                result = {
+                    isSuccess: false,
+                    message: keyNotFound,
+                    status: StatusCode.BadRequest
+                }
+                break;
+            }
+                
+            const updateResult = await this.#repository.updateSettingsValue(setting.key, setting.value)
+            if (!updateResult?.isSuccess) {
+                return updateResult
             }
 
-        const updateResult = await this.#repository.updateSettingsValue(key, value)
-        if (!updateResult?.isSuccess)
-            return updateResult
-
-        const settinig = this.#settings.find(s => s.key == key)
-        settinig.value = value
-
-        return updateResult
+            const settinig = this.#settings.find(s => s.key == setting.key)
+            settinig.value = setting.value
+        }
+        
+        return {
+            isSuccess: true, 
+            status: StatusCode.Ok,
+            message: 'Update settings successful.'
+        }
     }
     //#endregion  
 

@@ -126,10 +126,21 @@ export default class SqliteDbContext {
             }
 
             await this.sequelize.transaction(async (t) => {
-                await deviceType.bulkCreate([
-                    { name: 'PUMP' },
-                    { name: 'VALVE' }
-                ], { transaction: t })
+                
+                const pumpType = await deviceType.create({
+                    name: 'PUMP'
+                }, { transaction: t})
+                
+                await deviceType.create({
+                    name: 'VALVE'
+                }, { transaction: t})
+                
+                await device.create({
+                    name: 'Pump',
+                    pinNo: 6,
+                    type: 'PUMP',
+                    deviceTypeId: pumpType.id
+                }, { transaction: t})
 
                 await settings.bulkCreate([
                     { key: Settings.autostartScheduler, value: true },

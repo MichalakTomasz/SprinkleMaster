@@ -93,10 +93,8 @@ router.post("/task/", [
   const newTask = req.body
 
   const result = await taskManager.addTask(newTask)
-  if (!result.isSuccess)
-    return res.status(result.status).json(result)
 
-  return res.status(result.status).json(CreateClientTask(result.result))
+  return res.status(result.status).json(result)
 })
 
 //Update Task
@@ -119,10 +117,8 @@ router.patch("/task/", [
   const taskToUpdate = req.body
 
   const result = await taskManager.updateTask(taskToUpdate)
-  if (!result.isSuccess)
-    return res.status(result.status).json(result)
 
-  return res.status(result.status).json(CreateClientTask(result.result))
+  return res.status(result.status).json(result)
 })
 
 //Delete Task
@@ -140,7 +136,7 @@ router.delete('/task/:id', [
   const id = req.params.id
   
   const result = await taskManager.deleteTask(id)
-  res.send(result)
+  res.status(result.status).json(result)
 })
 
 /*
@@ -190,9 +186,9 @@ router.post('/task/unassign', [
 
     const taskId = req.body.taskId
     const valveId = req.body.valveId
-    const assignResult = await taskManager.unassignFromTask(taskId, valveId)
+    const unassignResult = await taskManager.unassignFromTask(taskId, valveId)
     
-    return res.status(assignResult.status).json(assignResult)
+    return res.status(unassignResult.status).json(unassignResult)
 })
 
 /*
@@ -347,12 +343,8 @@ router.post('/valve',[
     
   const valve = req.body
   const addResult = await taskManager.addValve(valve)
-  if (!addResult.isSuccess)
-    return res.status(addResult.status).json(addResult)
 
-  const clientValve = CreateClientDevice(addResult.result)
-
-  return res.status(addResult.status).json(clientValve)
+  return res.status(addResult.status).json(addResult)
 })
 
 //Update Valve
@@ -552,15 +544,19 @@ router.get('/settings/byKey/:key', [
 })
 
 /*
-{
+[{
   "key": 'pumpStopDelay',
   "value": 3000
-}
+}]
 */
 //Upddate setting
 router.patch('/settings', [
-  body('key').isString().notEmpty().withMessage('Param "key" can not be empty.'),
-  body('value').isString().notEmpty().withMessage('Param "value" can not be empty.')
+  check('body').custom((value, { req }) => {
+    if (!Array.isArray(req.body)) {
+      throw new Error('Request body must be an array');
+    }
+    return true;
+  })
 ], async (req, res) => {
 
   const errors = validationResult(req)
@@ -571,9 +567,8 @@ router.patch('/settings', [
       status: StatusCode.BadRequest
     })
 
-  const key = req.body.key
-  const value = req.body.value
-  const settingsResult = await taskManager.updateSettingsValue(key, value)
+  const setting = req.body
+  const settingsResult = await taskManager.updateSettings(setting)
 
   return res.status(settingsResult.status).json(settingsResult)
 })

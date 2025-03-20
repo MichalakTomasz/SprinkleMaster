@@ -95,7 +95,6 @@ export default class AppRepository {
                 status: StatusCode.InternalServerError
             }
         }
-        
     }
 
     addTask = async inputTask => 
@@ -105,12 +104,36 @@ export default class AppRepository {
         await updateTask(inputTask, this.#dbContext, this.#loggerService)
 
     deleteTask = async id => {
-        await this.#dbContext.ensureCreated()
-        return await valveTask.destroy({
-            where: {
-                id: id
+        try {
+            await this.#dbContext.ensureCreated()
+            const result = await valveTask.destroy({
+                where: {
+                    id: id
+                }
+            })
+
+            if (!result || result == 0) {
+                return {
+                    isSuccess: false,
+                    message: 'No Task was deleted.',
+                    status: StatusCode.InternalServerError
+                }
             }
-        })
+
+            return {
+                isSuccess: true,
+                message: 'Task deleted successful.',
+                status: StatusCode.Ok
+            }
+        } catch (e) {
+            const message = 'Delete Task returned error: ${e.message}`
+            this.#loggerService.logError(message)
+            return {
+                isSuccess: false,
+                message: message,
+                status: StatusCode.InternalServerError
+            }
+        }
     }
     
     assignToTask = async (taskId, valveId) => {
@@ -269,7 +292,7 @@ export default class AppRepository {
             }
         } catch (e) { 
             const message = `AddDevice returned error: ${e.message}`
-            this.#loggerService.logError(message)
+            this.#loggerService.logError(e)
             return {
                 isSuccess: false,
                 message: message,
@@ -281,31 +304,65 @@ export default class AppRepository {
     updateDevice = async inputDevice => {
         try {
             await this.#dbContext.ensureCreated()
-            return await device.update(inputDevice, {
+            const result = await device.update(inputDevice, {
                 where: {
                     id: inputDevice.id
                 }
             })
+            if (!result || result == 0) {
+                return {
+                    isSuccess: false,
+                    message: 'No device was updated.',
+                    status: StatusCode.InternalServerError
+                }
+            }
+
+            return {
+                isSuccess: true,
+                message: 'Device updated successful.',
+                status: StatusCode.Ok
+            }
         } catch (e) {
-            const message = `UpdateDevice returned error ${e.message}`
-            this.#loggerService.logError(message)
-            return null
-        }   
-        
+            const message = `Update device returned error: ${e.message}`
+            this.#loggerService.logError(e)
+            return {
+                isSuccess: false,
+                message: message,
+                status: StatusCode.InternalServerError
+            }
+        }
     }
 
     deleteDevice = async id =>  {
         try {
             await this.#dbContext.ensureCreated()
-            return await device.destroy({
+            const result = await device.destroy({
                 where: {
                     id: id
                 }
             })
+
+            if (!result || result == 0) {
+                return {
+                    isSuccess: false,
+                    message: 'No device was deleted.',
+                    status: StatusCode.InternalServerError
+                }
+            }
+
+            return {
+                isSuccess: true,
+                message: 'Device deleted successful.',
+                status: StatusCode.Ok
+            }
         } catch (e) {
-            const message = `DeleteDevice returned error: ${e.message}`
+            const message = `Delete Device returned error: ${e.message}`
             this.#loggerService.logError(message)
-            return null
+            return {
+                isSuccess: false,
+                message: message,
+                status: StatusCode.InternalServerError
+            }
         }
     }
 //#endregion
@@ -403,7 +460,11 @@ export default class AppRepository {
         } catch (e) {
             const message = `Update settings by key faild: ${e.message}`
             this.#loggerService.logError(message)
-            return { message:  message }
+            return { 
+                message: message, 
+                status: StatusCode.InternalServerError,
+                isSuccess: false 
+            }
         }
     }
 //#endregion
