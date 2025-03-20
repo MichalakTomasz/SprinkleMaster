@@ -20,7 +20,9 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 app.use(cors({
-  orign: 'http://localhost:5173'
+  orign: 'http://localhost:5173',
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type",
 }))
 
 app.use(express.json())
