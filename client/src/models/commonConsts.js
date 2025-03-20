@@ -1,1 +1,0 @@
-export const baseUrl = 'http://raspberrypi:3200'

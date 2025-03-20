@@ -865,21 +865,17 @@ export default class TaskManager {
     #compareTime = (baseTime, hours, minutes, message) => {
         const [baseHours, baseMinutes] = baseTime.split(':').map(Number)
 
-        this.#loggerService.logInfo(`${message} on: ${baseHours}:${baseMinutes}`)
-
         return hours == baseHours && minutes == baseMinutes
     }
 
     #schedulerCallback = async () => {
-        this.#loggerService.logInfo('Scheduler Tick')
         const time = new Date()
         const hours = time.getHours()
         const minutes = time.getMinutes()
 
         this.#valveTasks.forEach(t => {
-            let compareMessage = `Waiting for start task: ${t.name}`
             if (t.period == Period.EVERYDAY &&
-                this.#compareTime(t.start, hours, minutes, compareMessage)) {
+                this.#compareTime(t.start, hours, minutes)) {
                 t.devices?.forEach(d => {
                     if (d.gpioPin.getState() != PinState.HIGH) {
                         this.#loggerService.logInfo(`Opening valve: ${d.name}`)
@@ -891,10 +887,9 @@ export default class TaskManager {
                 this.#loggerService.logInfo(`Task ${t.name} started.`)
             }
 
-            compareMessage = `waiting for stop task: ${t.name}`
             if (
                 t.period == Period.EVERYDAY &&
-                this.#compareTime(t.stop, hours, minutes, compareMessage)) {
+                this.#compareTime(t.stop, hours, minutes)) {
                 t.devices?.forEach(d => {
                     if (d.gpioPin.getState() != PinState.LOW) {
                         this.#loggerService.logInfo(`Closing valve: ${d.name}`)
