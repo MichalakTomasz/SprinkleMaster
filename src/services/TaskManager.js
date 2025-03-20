@@ -271,10 +271,10 @@ export default class TaskManager {
                     status: StatusCode.InternalServerError
                 }
             const valveIndexToUnassign = task.devices.indexOf(valveToUnassign)
-            if (!valveIndexToUnassign) {
+            if (valveIndexToUnassign < 0) {
                 return {
                     isSuccess: false,
-                    message: "Find server taak index error",
+                    message: "Find server tasak index error.",
                     status: StatusCode.InternalServerError
                 }
             }

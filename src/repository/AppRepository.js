@@ -5,7 +5,6 @@ import { deviceType } from '../models/dbModels/deviceType.js'
 import  addTask from './addTask.js'
 import updateTask from './updateTask.js'
 import { settings } from '../models/dbModels/settings.js'
-import { EmptyResultError, where } from 'sequelize'
 import StatusCode from '../models/StatusCode.js'
 
 export default class AppRepository {
@@ -126,7 +125,7 @@ export default class AppRepository {
                 status: StatusCode.Ok
             }
         } catch (e) {
-            const message = 'Delete Task returned error: ${e.message}`
+            const message = `Delete Task returned error: ${e.message}`
             this.#loggerService.logError(message)
             return {
                 isSuccess: false,
@@ -262,7 +261,7 @@ export default class AppRepository {
         }
     }
 
-    addDevice =  async inputDevice =>  {
+    addDevice = async inputDevice =>  {
         try {
             await this.#dbContext.ensureCreated()
             const inputType = await deviceType.findOne({
@@ -290,7 +289,7 @@ export default class AppRepository {
                 result: newDevice,
                 status: StatusCode.Created
             }
-        } catch (e) { 
+        } catch (e) {             
             const message = `AddDevice returned error: ${e.message}`
             this.#loggerService.logError(e)
             return {
