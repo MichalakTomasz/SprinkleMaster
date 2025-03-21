@@ -7,9 +7,11 @@ import router  from './src/controllers/gpioController.js'
 import StatusCode from './src/models/StatusCode.js';
 import setupProcessHandlers from './src/middleware/processHandlers.js'
 import cors from 'cors'
+import getHttpsServer from'./src/services/httpsService.js'
 
 const app = express();
 const PORT = 3200;
+const httpsPort = 443
 const loggerService = container.resolve('loggerService')
 
 loggerService.addConsoleLogging = true
@@ -21,7 +23,7 @@ const dirname = path.dirname(filename)
 
 app.use(cors({
   orign: 'http://localhost:5173',
-  methods: "GET,POST,PUT,DELETE",
+  methods: "GET,POST,DELETE, PATCH",
   allowedHeaders: "Content-Type",
 }))
 
@@ -40,5 +42,8 @@ app.use('*', (req, res) => res.status(StatusCode.NotFound).json({message: 'Endpo
 const server = app.listen(PORT, () => {
     loggerService.logInfo(`Server started on port ${PORT}`);
 })
+
+// getHttpsServer(app).listen(httpsPort, () => { 
+//   console.log('Serwer HTTPS started on port 443'); });
 
 setupProcessHandlers(server)

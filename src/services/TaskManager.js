@@ -316,7 +316,14 @@ export default class TaskManager {
         if (this.#isDeviceWithTheSamePinNo(valve))
             return {
                 isSuccess: false,
-                message: 'Valve with the same PinNo alredy exists.',
+                message: 'Valve with the same GPIO Pin number alredy exists.',
+                status: StatusCode.BadRequest
+            }
+        
+        if (this.#pump.pinNo == valve.pinNo)
+            return {
+                isSuccess: false,
+                message: 'This GPIO Pin number is reserved for The Pump.',
                 status: StatusCode.BadRequest
             }
 
@@ -337,6 +344,26 @@ export default class TaskManager {
     })
 
     updateValve = async valve => await this.#trackScheduler(async () => {
+        if (this.#isDeviceWithTheSameName(valve))
+            return {
+                isSuccess: false,
+                message: 'Valve with this name alredy exists.',
+                status: StatusCode.BadRequest
+            }
+
+        if (this.#isDeviceWithTheSamePinNo(valve))
+            return {
+                isSuccess: false,
+                message: 'Valve with the same GPIO Pin number alredy exists.',
+                status: StatusCode.BadRequest
+            }
+        
+        if (this.#pump.pinNo == valve.pinNo)
+            return {
+                isSuccess: false,
+                message: 'This GPIO Pin number is reserved for The Pump.',
+                status: StatusCode.BadRequest
+            }
 
         this.pauseScheduler()
 

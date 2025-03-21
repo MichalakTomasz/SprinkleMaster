@@ -303,7 +303,19 @@ export default class AppRepository {
     updateDevice = async inputDevice => {
         try {
             await this.#dbContext.ensureCreated()
-            const result = await device.update(inputDevice, {
+
+            const currentDevice = device.findByPk(inputDevice.id)
+            const formatedInputDevice = {}
+            
+            if (currentDevice.name != inputDevice.name) {
+                formatedInputDevice.name = inputDevice.name
+            }
+
+            if (currentDevice.pinNo != inputDevice.pinNo) {
+                formatedInputDevice.pinNo = inputDevice.pinNo
+            }
+
+            const result = await device.update(formatedInputDevice, {
                 where: {
                     id: inputDevice.id
                 }

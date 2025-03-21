@@ -19,6 +19,8 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
     "pigpio": "^3.3.1",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.7"
