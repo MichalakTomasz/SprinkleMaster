@@ -327,6 +327,8 @@ export default class TaskManager {
                 status: StatusCode.BadRequest
             }
 
+        this.pauseScheduler() 
+
         const addResult = await this.#repository.addDevice({
             ...valve,
             type: 'VALVE'})
@@ -344,24 +346,19 @@ export default class TaskManager {
     })
 
     updateValve = async valve => await this.#trackScheduler(async () => {
-        if (this.#isDeviceWithTheSameName(valve))
+        const isDeviceWithTheSameName = this.#isDeviceWithTheSameName(valve)
+        const isDeviceWithTheSamePinNo = this.#isDeviceWithTheSamePinNo(valve)
+        if (isDeviceWithTheSameName && (isDeviceWithTheSamePinNo || this.#isTheSamePumpPinNo(valve.pinNo)))
             return {
                 isSuccess: false,
                 message: 'Valve with this name alredy exists.',
                 status: StatusCode.BadRequest
             }
 
-        if (this.#isDeviceWithTheSamePinNo(valve))
+        if ((isDeviceWithTheSamePinNo || this.#isTheSamePumpPinNo(valve.pinno)) && isDeviceWithTheSameName)
             return {
                 isSuccess: false,
-                message: 'Valve with the same GPIO Pin number alredy exists.',
-                status: StatusCode.BadRequest
-            }
-        
-        if (this.#pump.pinNo == valve.pinNo)
-            return {
-                isSuccess: false,
-                message: 'This GPIO Pin number is reserved for The Pump.',
+                message: 'Device with the same GPIO Pin number alredy exists.',
                 status: StatusCode.BadRequest
             }
 
@@ -982,6 +979,8 @@ export default class TaskManager {
         return this.#valves.some(d => d.pinNo == device.pinNo) ||
             this.pump?.pinNo == device.pinNo
     }
+    
+    #isTheSamePumpPinNo = pinNo => this.#pump.pinNo == pinNo
 
     #trackScheduler = async func => {
         let result = null
