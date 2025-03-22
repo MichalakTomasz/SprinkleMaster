@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "sudo node server.js",
     "start:dev": "node server.js",
     "start:sudo": "sudo node server.js",
     "restart": "npm run stop && npm run start",
-    "stop": "sudo kill -9 $(sudo lsof -t -i:3100) || true && killall -9 node || true"
+    "stop": "sudo kill -9 $(sudo lsof -t -i:3100) || true && killall -9 node || true",
+    "build:prod": "NODE_ENV=production mkdir -p dist && cp -r server.js dist/ && cp -r src dist/",
+    "start:prod": "sudo NODE_ENV=production node server.js"
   },
   "author": "tm",
   "license": "ISC",
@@ -24,5 +26,6 @@
     "pigpio": "^3.3.1",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.7"
-  }
+  },
+  "devDependencies": {}
 }

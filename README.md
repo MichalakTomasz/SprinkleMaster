@@ -15,6 +15,6 @@ sudo pipgpiod - starts gpio service on linux
 
 services: 
 pigpiod service which manage gpip pins, it works with Pigpio class, 
-valves-server - my service which starts this server when system is risng
+/etc/systemd/system/sprinkle-master.service - my service which starts this server when system is risng
 
 
