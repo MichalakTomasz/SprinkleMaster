@@ -66,6 +66,8 @@ export default class GpioPin {
                 this.#pin = new pigpio.Gpio(this.#pinNo, { 
                     mode: pigpio.Gpio.OUTPUT
                 })
+
+                this.#pin.digitalWrite(convertPinState(PinState.LOW))
                 
                 this.#loggerService.logInfo(`Pin ${this.#pinNo} activated.`)
             } catch (e) {
