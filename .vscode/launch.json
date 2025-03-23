@@ -13,28 +13,6 @@
             ],
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Debug (sudo)",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/server.js",
-            "console": "integratedTerminal",
-            "runtimeExecutable": "sudo",
-            "runtimeArgs": [
-                "node"
-            ],
-            "env": {
-                "NODE_ENV": "development"
-            },
-            "presentation": {
-                "hidden": false,
-                "group": "gpio",
-                "order": 1
-            }
         }
     ]
 }
