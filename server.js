@@ -8,11 +8,13 @@ import StatusCode from './src/models/StatusCode.js';
 import setupProcessHandlers from './src/middleware/processHandlers.js'
 import cors from 'cors'
 import getHttpsServer from'./src/services/httpsService.js'
+import getServerIP from './src/services/ipService.js';
 
 const app = express();
 const PORT = 3200;
 const httpsPort = 443
 const loggerService = container.resolve('loggerService')
+const configurationService = container.resolve('configurationService')
 
 loggerService.addConsoleLogging = true
 loggerService.addDbLogging = false
@@ -30,6 +32,9 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static(path.join(dirname, 'client')))
 app.use(addEndpointsLogging)
+
+const ipAddress = getServerIP()
+configurationService.saveServerIp(path.join(dirname, 'client', 'ipAddress.json'), ipAddress)
 
 app.get('', (req, res) => {
   res.sendFile(path.join(dirname, 'client', 'index.html'));
