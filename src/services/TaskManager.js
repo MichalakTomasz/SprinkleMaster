@@ -12,7 +12,6 @@ const emptyData = 'Empty data ware passed.'
 const notCommonPin = 'are not for common use.'
 const taskWithTheSameName = 'There is Task with the same Name.'
 const pumpNotExists = 'The Pump not exests.'
-const databasePumpError = 'Get pump from database returned error.'
 const keNotFound = 'Key not found.'
 const Pump = 'PUMP'
 const Valve = 'VALVE'
@@ -44,10 +43,7 @@ export default class TaskManager {
             const pump = await this.#repository.getDeviceByName('Pump')
             this.#pump = pump ? CreateServerDevice(pump) : null
 
-            const tasks = await this.#repository.getTasks()
-            if (tasks?.length > 0) {
-                this.#valveTasks = tasks.map(t => CreateServerTask(t))
-            }
+            await this.#reloadTasks()
 
             const devices = await this.#repository.getDevices()
             const valves = devices?.filter(d => d.type.name == Valve)
@@ -61,6 +57,13 @@ export default class TaskManager {
             }
         } catch (e) {
             this.#loggerService.logError(`TaskManager initialization error: ${e.message}`)
+        }
+    }
+
+    #reloadTasks = async () => {
+        const tasks = await this.#repository.getTasks()
+        if (tasks?.length > 0) {
+                this.#valveTasks = tasks.map(t => CreateServerTask(t))
         }
     }
 
@@ -431,6 +434,8 @@ export default class TaskManager {
             }
 
         this.#valves.splice(indexToDelete, 1)
+
+        await this.#reloadTasks()
 
         return {
             isSuccess: true,
