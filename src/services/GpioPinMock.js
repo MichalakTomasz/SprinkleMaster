@@ -1,4 +1,5 @@
 import { convertPinState } from "../helpers/pinHelper.js"
+import PinState from "../models/PinState.js"
 
 export default class GpioPinMock {
     #pinNo
@@ -6,6 +7,7 @@ export default class GpioPinMock {
 
     constructor(pinNo, connect = false) { 
         this.#pinNo = pinNo
+        this.#state= convertPinState(PinState.LOW)
     }
 
     setState = (state) => {
