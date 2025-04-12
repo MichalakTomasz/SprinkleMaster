@@ -549,7 +549,7 @@ router.get('/settings/byKey/:key', [
   "value": 3000
 }]
 */
-//Upddate setting
+//Update setting
 router.patch('/settings', [
   check('body').custom((value, { req }) => {
     if (!Array.isArray(req.body)) {
