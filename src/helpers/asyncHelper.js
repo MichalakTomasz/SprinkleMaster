@@ -96,9 +96,9 @@ const computeTimeToExecute = (time) => {
     const currentMinutes = now.getMinutes()
     const currentSeconds = now.getSeconds()
     const currentMilliseconds = now.getMilliseconds()
-    const timeToExecute = (hours - currentHours) * 60 + (minutes - currentMinutes) - currentSeconds / 60 - currentMilliseconds / 60000
+    const timeToExecute = (((((hours - currentHours) * 60) + (minutes - currentMinutes)) * 60) - currentSeconds) * 1000 - currentMilliseconds
     
-    return timeToExecute < 0 ? timeToExecute + 24 * 60 * 60 * 1000 : timeToExecute * 60 * 1000
+    return timeToExecute < 0 ? timeToExecute + (24 * 60 * 60 * 1000) : timeToExecute
 }
 
 const timeToNextExecute = (waitTime) => {
