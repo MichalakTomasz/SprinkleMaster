@@ -4,7 +4,7 @@ import StatusCode from '../models/StatusCode.js'
 import PinState from '../models/PinState.js'
 import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
-import { taskDelay, repeatTask } from '../helpers/asyncHelper.js'
+import { taskDelay, periodicTask } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
 
 const taskNotFound = 'Task not found.'
@@ -130,7 +130,8 @@ export default class TaskManager {
         }
     })
 
-    updateTask = async task => await this.#trackScheduler(async () => {
+    updateTask = async task => await this.#trackScheduler(
+        async () => {
             if (!task)
                 return { isSuccess: false, message: emptyData, status: StatusCode.BadRequest }
 
@@ -788,9 +789,11 @@ export default class TaskManager {
             return false
 
         this.#isSchedulerEnabled = true
-        const tick = this.#settings.find(s => s.key == Settings.schedulerTick)?.value
         this.#cancellationToken.isCancelled = false
-        repeatTask(this.#schedulerCallback, tick, this.#cancellationToken)
+        this.#createWaitTasks(tasks)
+
+        //const tick = this.#settings.find(s => s.key == Settings.schedulerTick)?.value
+        //repeatTask(this.#schedulerCallback, tick, this.#cancellationToken)
 
         this.#loggerService.logInfo('Scheduler has been started.')
 
@@ -895,6 +898,36 @@ export default class TaskManager {
         const [baseHours, baseMinutes] = baseTime.split(':').map(Number)
 
         return hours == baseHours && minutes == baseMinutes
+    }
+
+    #createWaitTasks = tasks => {
+        const changeState = async (device, state) => {
+            this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
+            if (state == PinState.HIGH){
+                this.#ensurePumpTurnedOn()
+            }
+            else {
+                this.#pump.gpioPin.setState(PinState.LOW)
+                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+                await taskDelay(delay)
+            }
+
+            device.gpioPin.setState(state)
+            const currentState = device.gpioPin.getState()
+            if (currentState != state) {
+                this.#loggerService.logError(`Error changing state of device: ${device.name}. Current state: ${currentState}`)
+                return
+            }
+
+            this.#loggerService.logInfo(`Device: ${device.name} state ${currentState} after check.`)
+        }
+
+        tasks.forEach(task => {
+            task.devices?.forEach(device => {
+                periodicTask(() => changeState(device, PinState.HIGH), task.start, this.#cancellationToken)
+                periodicTask(() => changeState(device, PinState.LOW), task.stop, this.#cancellationToken)
+            })
+        })
     }
 
     #schedulerCallback = async () => {
