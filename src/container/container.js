@@ -6,6 +6,7 @@ import { Sequelize } from 'sequelize';
 import TaskManager from '../services/TaskManager.js';
 import ConfigurationService from '../services/ConfigurationService.js';
 import FileLoggerService from '../services/FileLoggerService.js';
+import GpioFactory from '../services/GpioFactory.js';
 
 const container = createContainer({
   injectionMode: InjectionMode.PROXY,
@@ -45,7 +46,9 @@ container.register({
   appRepository: asFunction(({ dbContext, loggerService }) =>
     new AppRepository(dbContext, loggerService), { lifetime: Lifetime.SINGLETON }),
   taskManager: asFunction(({ appRepository, loggerService }) =>
-    new TaskManager(appRepository, loggerService), { lifetime: Lifetime.SINGLETON })
+    new TaskManager(appRepository, loggerService), { lifetime: Lifetime.SINGLETON }),
+  gpioFactory: asFunction(({ configurationService }) =>
+    new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON })
 })
 
 export default container
