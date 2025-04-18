@@ -61,10 +61,10 @@ export const waitTask = (callback, time, cancellation) => {
     })
 }
 
-export const periodicTask = (callback, time, cancellation) =>
+export const periodicTask = (args) =>
     new Promise((resolve, reject) => {
         const runner = async () => {
-            if (cancellation?.isCancelled) {
+            if (args.cancellation?.isCancelled) {
                 resolve()
                 return
             }
@@ -73,11 +73,14 @@ export const periodicTask = (callback, time, cancellation) =>
                 const delay = delayTime => 
                     new Promise(resolve => 
                         setTimeout(resolve, delayTime))
-
-                while (!cancellation?.isCancelled) {
-                    const waitTime = computeTimeToExecute(time)
-                    console.log(`Next execute will be at ${timeToNextExecute(waitTime)}`)
-                    await delay(waitTime)
+                const time = args.isStart ? args.task.start : args.task.stop 
+                while (!args.cancellation?.isCancelled) {
+                    const milisecondsToExecute = computeMilisecondsToExecute(time)
+                    const executeTimie = computeExecuteTime(milisecondsToExecute)
+                    const timeToExecute  = computeTimeToExecute(milisecondsToExecute)
+                    args.logger.logInfo(`Next ${args.isStart ? 'Start' : 'Stop'} Task: ${args.task.name} will be at ${executeTimie}.`)
+                    args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
+                    await delay(milisecondsToExecute)
                     callback()
                 }
 
@@ -89,7 +92,7 @@ export const periodicTask = (callback, time, cancellation) =>
         runner()
     })
 
-const computeTimeToExecute = (time) => {
+const computeMilisecondsToExecute = (time) => {
     const [hours, minutes] = time.split(':').map(Number)
     const now = new Date()
     const currentHours = now.getHours()
@@ -101,7 +104,7 @@ const computeTimeToExecute = (time) => {
     return timeToExecute < 0 ? timeToExecute + (24 * 60 * 60 * 1000) : timeToExecute
 }
 
-const timeToNextExecute = (waitTime) => {
+const computeExecuteTime = (waitTime) => {
     let now = new Date().getTime()
     now += waitTime
     const nextTime = new Date(now)
@@ -109,4 +112,12 @@ const timeToNextExecute = (waitTime) => {
     const minutes = nextTime.getMinutes()
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+}
+
+const computeTimeToExecute = (waitTime) => {
+    const totalSeconds = Math.floor(waitTime / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    return `${hours.toString().padStart(2, '0')} hours ${minutes.toString().padStart(2, '0')} minutes`
 }

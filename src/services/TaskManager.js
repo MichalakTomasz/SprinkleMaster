@@ -924,8 +924,20 @@ export default class TaskManager {
 
         tasks.forEach(task => {
             task.devices?.forEach(device => {
-                periodicTask(() => changeState(device, PinState.HIGH), task.start, this.#cancellationToken)
-                periodicTask(() => changeState(device, PinState.LOW), task.stop, this.#cancellationToken)
+                periodicTask({
+                    callback: () => changeState(device, PinState.HIGH), 
+                    isStart: true,
+                    task: task, 
+                    cancellationToken: this.#cancellationToken, 
+                    logger: this.#loggerService
+                })
+                periodicTask({
+                    callback: () => changeState(device, PinState.LOW), 
+                    isStart: false,
+                    task: task, 
+                    cancellationToken: this.#cancellationToken, 
+                    logger: this.#loggerService
+                })
             })
         })
     }
