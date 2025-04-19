@@ -792,9 +792,6 @@ export default class TaskManager {
         this.#cancellationToken.isCancelled = false
         this.#createWaitTasks(tasks)
 
-        //const tick = this.#settings.find(s => s.key == Settings.schedulerTick)?.value
-        //repeatTask(this.#schedulerCallback, tick, this.#cancellationToken)
-
         this.#loggerService.logInfo('Scheduler has been started.')
 
         return true
@@ -893,13 +890,7 @@ export default class TaskManager {
             status: StatusCode.InternalServerError
         }
     }
-
-    #compareTime = (baseTime, hours, minutes, message) => {
-        const [baseHours, baseMinutes] = baseTime.split(':').map(Number)
-
-        return hours == baseHours && minutes == baseMinutes
-    }
-
+    
     #createWaitTasks = tasks => {
         const changeState = async (device, state) => {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
@@ -939,45 +930,6 @@ export default class TaskManager {
                     logger: this.#loggerService
                 })
             })
-        })
-    }
-
-    #schedulerCallback = async () => {
-        const time = new Date()
-        const hours = time.getHours()
-        const minutes = time.getMinutes()
-
-        this.#valveTasks.forEach(t => {
-            if (t.period == Period.EVERYDAY &&
-                this.#compareTime(t.start, hours, minutes)) {
-                t.devices?.forEach(d => {
-                    if (d.gpioPin.getState() != PinState.HIGH) {
-                        this.#loggerService.logInfo(`Opening valve: ${d.name}`)
-                        this.#ensurePumpTurnedOn()
-                        d.gpioPin.setState(PinState.HIGH)
-                    }
-                    this.#loggerService.logInfo(`Valve: ${d.name} state ${d.gpioPin.getState()} after check`)
-                })
-                this.#loggerService.logInfo(`Task ${t.name} started.`)
-            }
-
-            if (
-                t.period == Period.EVERYDAY &&
-                this.#compareTime(t.stop, hours, minutes)) {
-                t.devices?.forEach(d => {
-                    if (d.gpioPin.getState() != PinState.LOW) {
-                        this.#loggerService.logInfo(`Closing valve: ${d.name}`)
-                        const countOpenValves = this.#valves.filter(v => v.gpioPin.getState() == PinState.HIGH).length
-                        if (countOpenValves == 1) {
-                            this.#pump?.gpioPin.setState(PinState.LOW)
-                            this.#loggerService.logInfo('Pump was turned off.')
-                        }
-                        d.gpioPin.setState(PinState.LOW)
-                    }
-                    this.#loggerService.logInfo(`Valve: ${d.name} state ${d.gpioPin.getState()} after check`)
-                })
-                this.#loggerService.logInfo(`Task ${t.name} stopped.`)
-            }
         })
     }
 

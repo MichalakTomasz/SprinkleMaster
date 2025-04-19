@@ -145,7 +145,6 @@ export default class SqliteDbContext {
                 await settings.bulkCreate([
                     { key: Settings.autostartScheduler, value: true },
                     { key: Settings.pumpStopDelay, value: 3000 },
-                    { key: Settings.schedulerTick, value: 3000 }
             ], { transaction: t})
             })
         } catch (e) {

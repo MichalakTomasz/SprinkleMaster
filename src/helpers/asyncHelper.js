@@ -1,17 +1,6 @@
-export const taskDelay = (delay, cancellation = null) => {
-    return new Promise((resolve) => {
-        const taskId = setTimeout(() => {
-            resolve();
-        }, delay);
-
-        if (cancellation) {
-            cancellation.cancel = () => {
-                clearTimeout(taskId);
-                resolve();
-            }
-        }
-    })
-}
+export const taskDelay = delayTime => 
+    new Promise(resolve => 
+    setTimeout(resolve, delayTime))
 
 export const repeatTask = (callback, tick, cancellation) => {
     return new Promise((resolve, reject) => {
@@ -61,7 +50,7 @@ export const waitTask = (callback, time, cancellation) => {
     })
 }
 
-export const periodicTask = (args) =>
+export const periodicTask = args =>
     new Promise((resolve, reject) => {
         const runner = async () => {
             if (args.cancellation?.isCancelled) {
@@ -86,13 +75,15 @@ export const periodicTask = (args) =>
 
                 resolve()
             } catch (e) {
+                args.logger.logError(`Creating periodic Task error: ${e.message}.`)
+                args.logger.logError(`Creating periodic Task error stack: ${e.stack}.`)
                 reject(e)
             }
         }
         runner()
     })
 
-const computeMilisecondsToExecute = (time) => {
+const computeMilisecondsToExecute = time => {
     const [hours, minutes] = time.split(':').map(Number)
     const now = new Date()
     const currentHours = now.getHours()
@@ -104,7 +95,7 @@ const computeMilisecondsToExecute = (time) => {
     return timeToExecute < 0 ? timeToExecute + (24 * 60 * 60 * 1000) : timeToExecute
 }
 
-const computeExecuteTime = (waitTime) => {
+const computeExecuteTime = waitTime => {
     let now = new Date().getTime()
     now += waitTime
     const nextTime = new Date(now)
@@ -114,7 +105,7 @@ const computeExecuteTime = (waitTime) => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
 }
 
-const computeTimeToExecute = (waitTime) => {
+const computeTimeToExecute = waitTime => {
     const totalSeconds = Math.floor(waitTime / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
