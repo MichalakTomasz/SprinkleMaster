@@ -1,4 +1,3 @@
-import Period from '../models/Period.js'
 import { isGpioCommonPin } from '../helpers/pinHelper.js'
 import StatusCode from '../models/StatusCode.js'
 import PinState from '../models/PinState.js'
@@ -890,7 +889,7 @@ export default class TaskManager {
             status: StatusCode.InternalServerError
         }
     }
-    
+
     #createWaitTasks = tasks => {
         const changeState = async (device, state) => {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)

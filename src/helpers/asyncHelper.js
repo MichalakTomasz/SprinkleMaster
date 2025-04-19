@@ -70,7 +70,7 @@ export const periodicTask = args =>
                     args.logger.logInfo(`Next ${args.isStart ? 'Start' : 'Stop'} Task: ${args.task.name} will be at ${executeTimie}.`)
                     args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
                     await delay(milisecondsToExecute)
-                    callback()
+                    args.callback()
                 }
 
                 resolve()
