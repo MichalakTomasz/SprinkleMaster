@@ -33,10 +33,10 @@ export default class TaskManager {
             isCancelled: false
         }
 
-        this.init()
+        this.#init()
     }
 
-    init = async () => {
+    #init = async () => {
         try {
             await this.#initSettings()
             const pump = await this.#repository.getDeviceByName('Pump')
@@ -653,7 +653,7 @@ export default class TaskManager {
             }
 
         const faultList = this.#valves.filter(v => {
-            v.gpioPin.setState(PinState)
+            v.gpioPin.setState(PinState.LOW)
             return v.gpioPin.getState() != PinState.LOW
         })
 

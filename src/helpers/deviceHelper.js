@@ -1,6 +1,4 @@
-import GpioPin from '../services/GpioPinManager.js'
 import container from '../container/container.js'
-import GpioPinMock from '../services/GpioPinMock.js'
 
 export const CreateServerDevice = device => {
     const gpioFactory = container.resolve('gpioFactory')
