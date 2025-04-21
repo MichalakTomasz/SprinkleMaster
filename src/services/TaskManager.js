@@ -511,7 +511,12 @@ export default class TaskManager {
             return changePinResult
         }
 
-        this.#pump.pinNo = pinNo
+        const newPumpData = {
+            name: this.#pump.name,
+            type: this.#pump.type,
+            pinNo: pinNo            
+        }
+        UpdateServerDevice(this.#pump, newPumpData)
 
         return { 
             isSuccess: true, 

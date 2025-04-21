@@ -22,7 +22,7 @@ const updateTask = async (inputTask, dbContext, loggerService) => {
             }
 
             if (inputTask.name != existingTask.name)
-                existingTask.name = inputTask.name
+                inputJson.name = inputTask.name
 
             await existingTask.update(inputJson, {
                 transaction: t
