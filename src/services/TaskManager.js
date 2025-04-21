@@ -5,6 +5,7 @@ import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
 import { taskDelay, periodicTask } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
+import { shouldWater } from './weatcherService.js'
 
 const taskNotFound = 'Task not found.'
 const emptyData = 'Empty data ware passed.'
@@ -894,6 +895,11 @@ export default class TaskManager {
         const changeState = async (device, state) => {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
             if (state == PinState.HIGH){
+                const useWeatcherAssistant = this.getSettingsByKey(Settings.useWeatcherAssistant).result.value ?? false
+                const shouldStart = await shouldWater()
+                if (useWeatcherAssistant && !shouldStart)
+                    return
+                
                 this.#ensurePumpTurnedOn()
             }
             else {

@@ -4,7 +4,7 @@ const Settings = {
     //Delay beetween turnoff the Pump and close valves - miliseconds
     pumpStopDelay: 'pumpStopDelay',
     //Defines wether Tasks should run depending on weather
-    checkWeather: 'useWeatcherAssistant'
+    useWeatcherAssistant: 'useWeatcherAssistant'
 }
 
 export default Settings

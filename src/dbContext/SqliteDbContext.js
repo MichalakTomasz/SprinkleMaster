@@ -137,7 +137,7 @@ export default class SqliteDbContext {
                 
                 await device.create({
                     name: 'Pump',
-                    pinNo: 6,
+                    pinNo: 25,
                     type: 'PUMP',
                     deviceTypeId: pumpType.id
                 }, { transaction: t})
@@ -145,6 +145,7 @@ export default class SqliteDbContext {
                 await settings.bulkCreate([
                     { key: Settings.autostartScheduler, value: true },
                     { key: Settings.pumpStopDelay, value: 3000 },
+                    { key: Settings.useWeatcherAssistant, value: false }
             ], { transaction: t})
             })
         } catch (e) {
