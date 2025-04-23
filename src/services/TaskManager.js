@@ -3,7 +3,7 @@ import StatusCode from '../models/StatusCode.js'
 import PinState from '../models/PinState.js'
 import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
-import { taskDelay, periodicTask } from '../helpers/asyncHelper.js'
+import { taskDelay, periodicTask, CancellationToken } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
 import { shouldWater } from './weatcherService.js'
 
@@ -30,9 +30,6 @@ export default class TaskManager {
     constructor(appRepository, loggerService) {
         this.#loggerService = loggerService
         this.#repository = appRepository
-        this.#cancellationToken = {
-            isCancelled: false
-        }
 
         this.#init()
     }
@@ -583,6 +580,27 @@ export default class TaskManager {
             status: StatusCode.Ok
         }
     })
+
+    #turnOfThePumpBeforeCloseLastValve = async () => {
+        const countOpenValves = this.#valves.filter(v => v.gpioPin.getState() == PinState.HIGH).length
+            if (countOpenValves == 1) {
+                this.#pump?.gpioPin.setState(PinState.LOW)
+                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+                await taskDelay(delay)
+                const pumpState = this.#pump.gpioPin.getState()
+                if (pumpState != PinState.LOW)
+                    return {
+                        isSuccess: false,
+                        message: 'Trying to close last valve, but the Pump could not be turn off.'
+                }
+                else {
+                    return {
+                        isSuccess: true,
+                        message: 'The Pump has been turned off.'
+                    }
+                }
+            }
+    }
     //#endregion
 
     //#region valve - Task States
@@ -607,23 +625,7 @@ export default class TaskManager {
         }
 
         if (state == PinState.LOW) {
-            const areAnyOtherValvesOpen = this.#valveTasks.some(t => t.id != task.id && 
-                t.devices?.some(v => v.gpioPin.getState() == PinState.HIGH))
-            
-            const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
-            if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
-                this.#pump?.gpioPin.setState(PinState.LOW)
-                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
-                await taskDelay(delay)
-                const pumpState = this.#pump.gpioPin.getState()
-                if (pumpState != PinState.LOW) {
-                    return {
-                        isSuccess: false,
-                        message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turnted off before Valves close.`,
-                        status: StatusCode.InternalServerError
-                    }
-                }
-            }
+            this.#turnOfThePumpBeforeCloseLastValve()
         }
 
         const faultList = devices.filter(d => {
@@ -752,18 +754,7 @@ export default class TaskManager {
         }       
 
         if (state == PinState.LOW) {
-            const countOpenValves = this.#valves.filter(v => v.gpioPin.getState() == PinState.HIGH).length
-            if (countOpenValves == 1) {
-                this.#pump?.gpioPin.setState(PinState.LOW)
-                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
-                await taskDelay(delay)
-                const pumpState = this.#pump.gpioPin.getState()
-                if (pumpState != PinState.LOW)
-                    return {
-                        isSuccess: false,
-                        message: 'Trying to close last valve, but the Pump could not be turn off.'
-                }
-            }
+            this.#turnOfThePumpBeforeCloseLastValve()
         }
 
         device.gpioPin.setState(state)
@@ -794,7 +785,7 @@ export default class TaskManager {
             return false
 
         this.#isSchedulerEnabled = true
-        this.#cancellationToken.isCancelled = false
+        this.#cancellationToken = new CancellationToken()
         this.#createWaitTasks(tasks)
 
         this.#loggerService.logInfo('Scheduler has been started.')
@@ -804,14 +795,14 @@ export default class TaskManager {
 
     stopScheduler = () => {
         this.#isSchedulerEnabled = false
-        this.#cancellationToken.isCancelled = true
+        this.#cancellationToken.cancel()
         this.#loggerService.logInfo('Scheduler has been stopped.')
 
         return true
     }
 
     pauseScheduler = () => {
-        this.#cancellationToken.isCancelled = true
+        this.#cancellationToken.cancel()
         this.#loggerService.logInfo('Scheduler has been paused.')
 
         return true
@@ -909,7 +900,7 @@ export default class TaskManager {
             }
             else {
                 this.#pump.gpioPin.setState(PinState.LOW)
-                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+                const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
                 await taskDelay(delay)
             }
 
@@ -926,16 +917,18 @@ export default class TaskManager {
         tasks.forEach(task => {
             task.devices?.forEach(device => {
                 periodicTask({
-                    callback: () => changeState(device, PinState.HIGH), 
+                    callback: async () => await changeState(device, PinState.HIGH), 
                     isStart: true,
                     task: task, 
+                    device: device,
                     cancellationToken: this.#cancellationToken, 
                     logger: this.#loggerService
                 })
                 periodicTask({
-                    callback: () => changeState(device, PinState.LOW), 
+                    callback: async () => await changeState(device, PinState.LOW), 
                     isStart: false,
-                    task: task, 
+                    task: task,
+                    device: device,
                     cancellationToken: this.#cancellationToken, 
                     logger: this.#loggerService
                 })
