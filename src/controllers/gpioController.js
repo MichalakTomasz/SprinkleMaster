@@ -558,7 +558,6 @@ router.patch('/settings', [
     return true;
   })
 ], async (req, res) => {
-
   const errors = validationResult(req)
   if (!errors.isEmpty())
     return res.status(StatusCode.BadRequest).json({

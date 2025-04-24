@@ -5,7 +5,7 @@ import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
 import { taskDelay, periodicTask, CancellationToken } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
-import { shouldWater } from './weatcherService.js'
+import { shouldWater } from './weatherService.js'
 
 const taskNotFound = 'Task not found.'
 const emptyData = 'Empty data ware passed.'
@@ -625,7 +625,23 @@ export default class TaskManager {
         }
 
         if (state == PinState.LOW) {
-            this.#turnOfThePumpBeforeCloseLastValve()
+            const areAnyOtherValvesOpen = this.#valveTasks.some(t => t.id != task.id && 
+                t.devices?.some(v => v.gpioPin.getState() == PinState.HIGH))
+            
+            const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
+            if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
+                this.#pump?.gpioPin.setState(PinState.LOW)
+                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+                await taskDelay(delay)
+                const pumpState = this.#pump.gpioPin.getState()
+                if (pumpState != PinState.LOW) {
+                    return {
+                        isSuccess: false,
+                        message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turnted off before Valves close.`,
+                        status: StatusCode.InternalServerError
+                    }
+                }
+            }
         }
 
         const faultList = devices.filter(d => {
@@ -891,9 +907,9 @@ export default class TaskManager {
         const changeState = async (device, state) => {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
             if (state == PinState.HIGH){
-                const useWeatcherAssistant = this.getSettingsByKey(Settings.useWeatcherAssistant).result.value ?? false
+                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant).result.value ?? false
                 const shouldStart = await shouldWater()
-                if (useWeatcherAssistant && !shouldStart)
+                if (useWeatherAssistant && !shouldStart)
                     return
                 
                 this.#ensurePumpTurnedOn()
