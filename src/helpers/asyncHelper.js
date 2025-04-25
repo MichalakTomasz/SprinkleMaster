@@ -1,4 +1,4 @@
-export const taskDelay = delayTime =>
+export const taskDelay = async delayTime =>
     new Promise(resolve =>
         setTimeout(resolve, delayTime))
 

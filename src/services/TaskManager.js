@@ -585,9 +585,9 @@ export default class TaskManager {
         const countOpenValves = this.#valves.filter(v => v.gpioPin.getState() == PinState.HIGH).length
             if (countOpenValves == 1) {
                 this.#pump?.gpioPin.setState(PinState.LOW)
-                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
-                await taskDelay(delay)
+                const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.result?.value ?? 3000
                 const pumpState = this.#pump.gpioPin.getState()
+                await taskDelay(delay)
                 if (pumpState != PinState.LOW)
                     return {
                         isSuccess: false,
@@ -605,7 +605,7 @@ export default class TaskManager {
 
     //#region valve - Task States
     
-    changeTaskStates = (id, state) => this.#trackScheduler(async () => {
+    changeTaskStates = async (id, state) => await this.#trackScheduler(async () => {
         const task = this.#valveTasks.find(t => t.id == id)
         const devices = task?.devices
 
@@ -663,6 +663,25 @@ export default class TaskManager {
         }
     })
 
+    #turnOffThePumpBeforeStopLastTask = async () => {
+        const areAnyOtherValvesOpen = this.#valveTasks.some(t => t.id != task.id && 
+            t.devices?.some(v => v.gpioPin.getState() == PinState.HIGH))
+        
+        const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
+        if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
+            this.#pump?.gpioPin.setState(PinState.LOW)
+            const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+            await taskDelay(delay)
+            const pumpState = this.#pump.gpioPin.getState()
+            if (pumpState != PinState.LOW) {
+                return {
+                    isSuccess: false,
+                    message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turnted off before Valves close.`,
+                    status: StatusCode.InternalServerError
+                }
+            }
+        }
+    }
     closeAllValves = async () => await this.#trackScheduler(async () => {
         const delay = this.#settings.find(s => s.key == Settings.pumpStopDelay)?.valve
         const shutdownPumpResult = await this.turnOffPump(delay)
@@ -770,7 +789,7 @@ export default class TaskManager {
         }       
 
         if (state == PinState.LOW) {
-            this.#turnOfThePumpBeforeCloseLastValve()
+            await this.#turnOfThePumpBeforeCloseLastValve()
         }
 
         device.gpioPin.setState(state)
@@ -907,7 +926,7 @@ export default class TaskManager {
         const changeState = async (device, state) => {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
             if (state == PinState.HIGH){
-                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant).result.value ?? false
+                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
                 const shouldStart = await shouldWater()
                 if (useWeatherAssistant && !shouldStart)
                     return
@@ -915,9 +934,7 @@ export default class TaskManager {
                 this.#ensurePumpTurnedOn()
             }
             else {
-                this.#pump.gpioPin.setState(PinState.LOW)
-                const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
-                await taskDelay(delay)
+                await this.#turnOffThePumpBeforeStopLastTask()
             }
 
             device.gpioPin.setState(state)
