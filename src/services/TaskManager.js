@@ -934,7 +934,9 @@ export default class TaskManager {
                 this.#ensurePumpTurnedOn()
             }
             else {
-                await this.#turnOffThePumpBeforeStopLastTask()
+                this.#pump.gpioPin.setState(PinState.LOW)
+                const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
+                await taskDelay(delay)
             }
 
             device.gpioPin.setState(state)
