@@ -1,10 +1,10 @@
 import getLocation from './gpsService.js'
 import fetch from 'node-fetch'
 
-export const checkCurrentWeather = async () => {  
+export const checkCurrentWeather = async args => {  
     const location = await getLocation()
     if (!location) {
-        console.error('Get location error.')
+        args?.logger.logError('Get location error.')
         return
     } 
     try {
@@ -12,13 +12,26 @@ export const checkCurrentWeather = async () => {
         const weatherQuery = `${url}/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&hourly=rain&timezone=auto&forecast_days=1`
         const result = await fetch(weatherQuery)
         
-        return result.json()
-    } catch (e) {
+        const jsonResult = await result.json()
+        args?.logger.logInfo(`Weather API response: ${JSON.stringify(jsonResult)}`)
 
+        return jsonResult
+    } catch (e) {
+        args?.logger.logError(`Weather API error: ${e.message}.`)
     }
 }
 
-export const shouldWater = async () => {
-    const prediction = await checkCurrentWeather()
-    return prediction?.hourly?.rain?.reduce((a, c) => a + c, 0) < 10
+export const shouldWater = async args => {
+    const prediction = await checkCurrentWeather(args)
+    const predictionSum = prediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
+    const isWaterNeeded = predictionSum < 10
+    
+    args?.logger.logInfo(`Rain day prediction: ${predictionSum} mm/m2.`)
+    if (isWaterNeeded) {
+        args?.logger.logInfo('Watering is needed.')
+    } else {
+        args?.logger.logInfo('Watering is not needed.')
+    }
+
+    return isWaterNeeded
 }

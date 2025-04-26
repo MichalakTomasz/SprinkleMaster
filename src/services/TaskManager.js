@@ -663,25 +663,6 @@ export default class TaskManager {
         }
     })
 
-    #turnOffThePumpBeforeStopLastTask = async () => {
-        const areAnyOtherValvesOpen = this.#valveTasks.some(t => t.id != task.id && 
-            t.devices?.some(v => v.gpioPin.getState() == PinState.HIGH))
-        
-        const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
-        if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
-            this.#pump?.gpioPin.setState(PinState.LOW)
-            const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
-            await taskDelay(delay)
-            const pumpState = this.#pump.gpioPin.getState()
-            if (pumpState != PinState.LOW) {
-                return {
-                    isSuccess: false,
-                    message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turnted off before Valves close.`,
-                    status: StatusCode.InternalServerError
-                }
-            }
-        }
-    }
     closeAllValves = async () => await this.#trackScheduler(async () => {
         const delay = this.#settings.find(s => s.key == Settings.pumpStopDelay)?.valve
         const shutdownPumpResult = await this.turnOffPump(delay)
@@ -927,7 +908,7 @@ export default class TaskManager {
             this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
             if (state == PinState.HIGH){
                 const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
-                const shouldStart = await shouldWater()
+                const shouldStart = await shouldWater({ logger: this.#loggerService })
                 if (useWeatherAssistant && !shouldStart)
                     return
                 
