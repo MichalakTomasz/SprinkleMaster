@@ -889,7 +889,11 @@ export default class TaskManager {
             }
 
         const pump = this.#pump
-        pump.gpioPin.setState(PinState.HIGH)
+        const currentPumpState = pump.gpioPin.getState()
+        if (currentPumpState != PinState.HIGH) {
+            pump.gpioPin.setState(PinState.HIGH)
+        }
+        
         const isPumpTurnedOn = pump.gpioPin.getState()
 
         return isPumpTurnedOn != PinState.HIGH ? {
@@ -909,7 +913,7 @@ export default class TaskManager {
             if (state == PinState.HIGH){
                 const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
                 const shouldStart = await shouldWater({ logger: this.#loggerService })
-                if (useWeatherAssistant && !shouldStart)
+                if (!this.getIsSchedulerEnabled() || (useWeatherAssistant && !shouldStart))
                     return
                 
                 this.#ensurePumpTurnedOn()

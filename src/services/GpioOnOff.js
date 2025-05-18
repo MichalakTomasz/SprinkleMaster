@@ -2,7 +2,7 @@ import { convertPinState } from "../helpers/pinHelper.js"
 import PinState from "../models/PinState.js"
 import { Gpio } from 'onoff'
 
-export default class GpioONoFF {
+export default class GpioOnOff {
     #pinNo
     #gpio
 

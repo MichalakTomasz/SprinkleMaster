@@ -17,7 +17,9 @@ export const periodicTask = args =>
                     args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
 
                     await taskDelay(milisecondsToExecute)
-                    await args.callback()
+                    if (!args.cancellation?.isCancelled) {
+                        await args.callback()
+                    }                    
                 }
 
                 clearTimeout(setTimeoutId)

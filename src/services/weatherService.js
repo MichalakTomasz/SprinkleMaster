@@ -24,7 +24,7 @@ export const checkCurrentWeather = async args => {
 export const shouldWater = async args => {
     const prediction = await checkCurrentWeather(args)
     const predictionSum = prediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
-    const isWaterNeeded = predictionSum < 10
+    const isWaterNeeded = predictionSum <= 4
     
     args?.logger.logInfo(`Rain day prediction: ${predictionSum} mm/m2.`)
     if (isWaterNeeded) {
