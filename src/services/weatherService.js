@@ -1,7 +1,47 @@
 import getLocation from './gpsService.js'
 import fetch from 'node-fetch'
+import fs from 'fs'
 
-export const checkCurrentWeather = async args => {  
+const utf8 = 'utf8'
+ const saveWeatherPrediction = (path, weatherPredidtion)  => {
+    if (!path || !weatherPredidtion)
+        return
+    try {
+        fs.writeFileSync(path, JSON.stringify({ weatherPredidtion: weatherPredidtion }), utf8)
+    }
+    catch (e) {
+        return
+    }    
+ }        
+
+const readWeatherPrediction = path => 
+{
+    try {
+        const fileContent =  fs.readFileSync(path, utf8)
+        if (!fileContent)
+            return null
+
+        const prediction = JSON.parse(fileContent)?.weatherPredidtion
+        const dateString = prediction?.hourly?.time[0]
+        const date = new Date(dateString)
+        if (!date || date.getDate() != new Date().getDate())
+            return
+
+
+        return prediction
+    }
+    catch (e) {
+        return null
+    }
+}
+
+export const checkCurrentWeather = async args => {
+    const weatherAssistantFile = 'weatherAssistant.json'
+    const prediction = readWeatherPrediction('./' + weatherAssistantFile)  
+    if (prediction) {
+        return prediction
+    }
+
     const location = await getLocation()
     if (!location) {
         args?.logger.logError('Get location error.')
@@ -15,6 +55,7 @@ export const checkCurrentWeather = async args => {
         const jsonResult = await result.json()
         args?.logger.logInfo(`Weather API response: ${JSON.stringify(jsonResult)}`)
 
+        saveWeatherPrediction('./' + weatherAssistantFile, jsonResult)
         return jsonResult
     } catch (e) {
         args?.logger.logError(`Weather API error: ${e.message}.`)
@@ -26,7 +67,7 @@ export const shouldWater = async args => {
     const predictionSum = prediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
     const isWaterNeeded = predictionSum <= 4
     
-    args?.logger.logInfo(`Rain day prediction: ${predictionSum} mm/m2.`)
+    args?.logger.logInfo(`Daily rain prediction: ${predictionSum} mm/m2.`)
     if (isWaterNeeded) {
         args?.logger.logInfo('Watering is needed.')
     } else {

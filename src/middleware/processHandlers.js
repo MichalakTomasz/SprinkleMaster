@@ -53,8 +53,8 @@ const setupProcessHandlers = (server) => {
             await cleanup()
             process.exit(0)
         } catch (e) {
-            loggerService.logError(`Errod during shuddown message: ${e.message}`)
-            loggerService.logError(`Errod during shuddown stack: ${e.stack}`)
+            loggerService.logError(`Error during shuddown message: ${e.message}`)
+            loggerService.logError(`Error during shuddown stack: ${e.stack}`)
             process.exit(1)
         }
     }
