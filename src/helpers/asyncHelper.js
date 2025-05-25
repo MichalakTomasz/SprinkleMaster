@@ -2,39 +2,6 @@ export const taskDelay = async delayTime =>
     new Promise(resolve =>
         setTimeout(resolve, delayTime))
 
-export const periodicTask = args =>
-    new Promise((resolve, reject) => {
-        let setTimeoutId = null
-        const runner = async () => {
-            try {
-                const time = args.isStart ? args.task.start : args.task.stop
-                while (!args.cancellation?.isCancelled) {
-                    const milisecondsToExecute = computeMilisecondsToExecute(time)
-                    const executeTimie = computeExecuteTime(milisecondsToExecute)
-                    const timeToExecute = computeTimeToExecute(milisecondsToExecute)
-
-                    args.logger.logInfo(`Next ${args.isStart ? 'Start' : 'Stop'} Task: ${args.task.name}, device: ${args.device.name} will be at ${executeTimie}.`)
-                    args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
-
-                    await taskDelay(milisecondsToExecute)
-                    if (!args.cancellation?.isCancelled) {
-                        await args.callback()
-                    }                    
-                }
-
-                clearTimeout(setTimeoutId)
-                args.logger.logInfo(`Periodic Task: ${args.task.name}, device: ${args.device.name} cancelled.`)
-                resolve()
-            } catch (e) {
-                args.logger.logError(`Creating periodic Task error: ${e.message}.`)
-                args.logger.logError(`Creating periodic Task error stack: ${e.stack}.`)
-                reject(e)
-            }
-        }
-
-        runner()
-    })
-
 export class CancellationToken {
     constructor() {
         this.isCancelled = false
@@ -73,4 +40,80 @@ const computeTimeToExecute = waitTime => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
 
     return `${hours.toString().padStart(2, '0')} hours ${minutes.toString().padStart(2, '0')} minutes`
+}
+
+// periodic tick 1000 miliseconds
+export const periodicTask2 = args =>
+    new Promise((resolve, reject) => {
+        let setTimeoutId = null
+        const runner = async () => {
+            try {
+                const executeTime = args.isStart ? args.task.start : args.task.stop
+                const dateToday = new Date().getDate()
+                let executeDate
+                while (!args.cancellationToken?.isCancelled) {
+                    while (!args.cancellationToken?.isCancelled && executeTime != timeNowString()) {
+                        await taskDelay(1000)
+                        if (args.cancellationToken?.isCancelled) {
+                            clearTimeout(setTimeoutId)
+                            args.logger.logInfo(`Periodic Task: ${args.task.name} cancelled.`)
+                            return
+                        }
+                    }
+                    if (executeDate != dateToday) {
+                        await args.callback()
+                    }
+
+                    executeDate = new Date().getDate()
+                }
+                resolve()
+            } catch (e) {
+                args.logger.logError(`Periodic Task error: ${e.message}.`)
+                args.logger.logError(`Periodic Task error stack: ${e.stack}.`)
+                reject()
+            }
+        }
+
+        runner()
+    })
+
+export const periodicTask = args =>
+    new Promise((resolve, reject) => {
+        let setTimeoutId = null
+        const runner = async () => {
+            try {
+                const time = args.isStart ? args.task.start : args.task.stop
+                while (!args.cancellationToken?.isCancelled) {
+                    const milisecondsToExecute = computeMilisecondsToExecute(time)
+                    args.logger.logInfo(`Miliseconds to execute: ${milisecondsToExecute}.`)
+                    const executeTime = computeExecuteTime(milisecondsToExecute)
+                    const timeToExecute = computeTimeToExecute(milisecondsToExecute)
+
+                    args.logger.logInfo(`Next ${args.isStart ? 'Start' : 'Stop'} Task: ${args.task.name} will be at ${executeTime}.`)
+                    args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
+
+                    await taskDelay(milisecondsToExecute)
+                    if (!args.cancellationToken?.isCancelled) {
+                        await args.callback()
+                    }
+                }
+
+                clearTimeout(setTimeoutId)
+                args.logger.logInfo(`Periodic Task: ${args.task.name} cancelled.`)
+                resolve()
+            } catch (e) {
+                args.logger.logError(`Periodic Task error: ${e.message}.`)
+                args.logger.logError(`Periodic Task error stack: ${e.stack}.`)
+                reject()
+            }
+        }
+
+        runner()
+    })
+
+const timeNowString = () => {
+    const date = new Date()
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
 }

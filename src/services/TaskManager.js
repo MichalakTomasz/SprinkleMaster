@@ -30,7 +30,6 @@ export default class TaskManager {
     constructor(appRepository, loggerService) {
         this.#loggerService = loggerService
         this.#repository = appRepository
-
         this.#init()
     }
 
@@ -802,7 +801,7 @@ export default class TaskManager {
 
         this.#isSchedulerEnabled = true
         this.#cancellationToken = new CancellationToken()
-        this.#createWaitTasks(tasks)
+        this.#createPeriodicTasks(tasks)
 
         this.#loggerService.logInfo('Scheduler has been started.')
 
@@ -907,51 +906,76 @@ export default class TaskManager {
         }
     }
 
-    #createWaitTasks = tasks => {
-        const changeState = async (device, state) => {
-            this.#loggerService.logInfo(`Changing state of device: ${device.name} to ${state}`)
-            if (state == PinState.HIGH){
+    #createPeriodicTasks = tasks => {
+        const taskCallback = async args => {
+            if (args.cancellationToken?.isCancelled)
+                return
+
+            args.logger.logInfo(`Changing task: ${args.task.name} to state: ${args.state}`)
+            if (args.state == PinState.HIGH) {
                 const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
                 const shouldStart = await shouldWater({ logger: this.#loggerService })
                 if (!this.getIsSchedulerEnabled() || (useWeatherAssistant && !shouldStart))
                     return
-                
+
                 this.#ensurePumpTurnedOn()
             }
             else {
-                this.#pump.gpioPin.setState(PinState.LOW)
-                const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
-                await taskDelay(delay)
+                const areOtherOpenValves = args.devices?.some(d => 
+                    !args.task.devices?.some(td => td.id == d.id) && d.gpioPin.getState() == PinState.HIGH)
+                if (!areOtherOpenValves) {
+                    this.#pump.gpioPin.setState(PinState.LOW)
+                    const pumpState = this.#pump.gpioPin.getState()
+                    if (pumpState == PinState.LOW) {
+                        args.logger.logInfo("Pump turned off succesful.")
+                    }
+                    else {
+                        args.logger.logError("Error turn off pump.")
+                    }
+
+                    const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
+                    await taskDelay(delay)
+                }
             }
 
-            device.gpioPin.setState(state)
-            const currentState = device.gpioPin.getState()
-            if (currentState != state) {
-                this.#loggerService.logError(`Error changing state of device: ${device.name}. Current state: ${currentState}`)
-                return
-            }
+            args.task.devices?.forEach(device => {
+                device.gpioPin.setState(args.state)
+                const currentState = device.gpioPin.getState()
+                if (currentState != args.state) {
+                    args.logger.logError(`Error changing device state: ${device.name}. Current state: ${currentState}`)
+                    return
+                }
 
-            this.#loggerService.logInfo(`Device: ${device.name} state ${currentState} after check.`)
-        }
+                args.logger.logInfo(`Device: ${device.name} state: ${currentState} after check.`)
+            })
+        }   
 
         tasks.forEach(task => {
-            task.devices?.forEach(device => {
-                periodicTask({
-                    callback: async () => await changeState(device, PinState.HIGH), 
-                    isStart: true,
+            periodicTask({
+                callback: async () => await taskCallback({ 
+                    devices: this.devices, 
                     task: task, 
-                    device: device,
-                    cancellationToken: this.#cancellationToken, 
-                    logger: this.#loggerService
-                })
-                periodicTask({
-                    callback: async () => await changeState(device, PinState.LOW), 
-                    isStart: false,
-                    task: task,
-                    device: device,
-                    cancellationToken: this.#cancellationToken, 
-                    logger: this.#loggerService
-                })
+                    state: PinState.HIGH, 
+                    logger: this.#loggerService, 
+                    cancellationToken: this.#cancellationToken 
+                }),
+                isStart: true,
+                task: task, 
+                cancellationToken: this.#cancellationToken, 
+                logger: this.#loggerService
+            })
+            periodicTask({
+                callback: async () => await taskCallback({ 
+                    devices: this.devices, 
+                    task: task, 
+                    state: PinState.LOW, 
+                    logger: this.#loggerService, 
+                    cancellationToken: this.#cancellationToken 
+                }),                     
+                isStart: false,
+                task: task, 
+                cancellationToken: this.#cancellationToken, 
+                logger: this.#loggerService
             })
         })
     }
