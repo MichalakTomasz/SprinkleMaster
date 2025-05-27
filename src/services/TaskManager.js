@@ -877,7 +877,18 @@ export default class TaskManager {
             message: 'Update settings successful.'
         }
     }
-    //#endregion  
+    //#endregion
+    //#region Weather prediction
+
+    getWeatherPredictions = async () => {
+        const predictions = await this.#repository.getWeatherPredictions()
+        return {
+            isSuccess: true,
+            result: predictions,
+            status: StatusCode.Ok
+        }
+    }
+    //#endregion
 
     #ensurePumpTurnedOn = () => {
         if (!this.#pump)

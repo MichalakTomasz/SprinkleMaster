@@ -486,7 +486,7 @@ export default class AppRepository {
     async getDeviceTypes() {
         try {
             await this.#dbContext.ensureCreated()
-            deviceType.findAll()
+            return await deviceType.findAll()
         } catch (e) {
             const message = `Get Device types error: ${e.message}`
             this.#loggerService.logError(message)
@@ -495,7 +495,18 @@ export default class AppRepository {
     }
     //#enddregion 
     //#region weatherPrediction
-    addWeatherPrediction = async inputPrediction => {
+
+    async getWeatherPredictions() {
+        try {
+            await this.#dbContext.ensureCreated()
+            return await weatherPrediction.findAll()
+        } catch (e) {
+            const message = `GetWeatherPredictions error: ${e.message}`
+            this.#loggerService.logError(message)
+            return { isSuccess: false, message: message }
+        }
+    }
+    async addWeatherPrediction(inputPrediction) {
         try {
             await this.#dbContext.ensureCreated()
 

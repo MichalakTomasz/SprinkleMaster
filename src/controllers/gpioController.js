@@ -573,4 +573,11 @@ router.patch('/settings', [
 })
 //endregion
 
+//Get Weather Predictions
+router.get("/weatherPredictions/", async (req, res) => {
+  const getResult = await taskManager.getWeatherPredictions()
+  
+  return res.status(getResult.status).json(getResult)
+})
+
 export default router
