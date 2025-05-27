@@ -2,22 +2,24 @@ import { valveTask } from '../models/dbModels/valveTask.js'
 import { device } from '../models/dbModels/device.js'
 import { dbLog } from '../models/dbModels/dbLog.js'
 import { deviceType } from '../models/dbModels/deviceType.js'
-import  addTask from './addTask.js'
+import addTask from './addTask.js'
 import updateTask from './updateTask.js'
 import { settings } from '../models/dbModels/settings.js'
 import StatusCode from '../models/StatusCode.js'
+import { weatherPrediction } from '../models/dbModels/weatherPrediction.js'
+import { Op } from 'sequelize';
 
 export default class AppRepository {
 
     #dbContext = null
     #loggerService = null
 
-    constructor(dbContext, loggerService){
+    constructor(dbContext, loggerService) {
         this.#dbContext = dbContext;
         this.#loggerService = loggerService;
     }
 
-//#region tasks
+    //#region tasks
     getTasks = async () => {
         try {
             await this.#dbContext.ensureCreated()
@@ -28,7 +30,7 @@ export default class AppRepository {
                     attributes: ['id', 'name', 'pinNo'],
                     include: {
                         model: deviceType,
-                        as: 'type'                       
+                        as: 'type'
                     }
                 }
             })
@@ -53,7 +55,7 @@ export default class AppRepository {
                     include: {
                         model: deviceType,
                         as: 'type'
-                        
+
                     }
                 }
             })
@@ -84,7 +86,7 @@ export default class AppRepository {
                         as: 'type'
                     }
                 }
-            })    
+            })
         } catch (e) {
             const message = `GetTaskByName returned error: ${e.message}`
             this.#loggerService.logError(message)
@@ -96,10 +98,10 @@ export default class AppRepository {
         }
     }
 
-    addTask = async inputTask => 
+    addTask = async inputTask =>
         await addTask(inputTask, this.#dbContext, this.#loggerService)
 
-    updateTask = async inputTask =>  
+    updateTask = async inputTask =>
         await updateTask(inputTask, this.#dbContext, this.#loggerService)
 
     deleteTask = async id => {
@@ -134,12 +136,12 @@ export default class AppRepository {
             }
         }
     }
-    
+
     assignToTask = async (taskId, valveId) => {
         try {
             const task = await valveTask.findByPk(taskId, {
                 include: [{
-                    model:device,
+                    model: device,
                     as: 'devices'
                 }]
             })
@@ -158,12 +160,12 @@ export default class AppRepository {
                     status: StatusCode.BadRequest
                 }
             await task.addDevice(valve)
-            return { 
+            return {
                 isSuccess: true,
                 message: 'Device has been assigned to Task.',
                 status: StatusCode.Ok
             }
-                  
+
         } catch (e) {
             const message = `Assign device to task returned error: ${e.message}`
             this.#loggerService.logError(message)
@@ -179,9 +181,10 @@ export default class AppRepository {
         try {
             const task = await valveTask.findByPk(taskId, {
                 include: [{
-                    model:device,
+                    model: device,
                     as: 'devices'
-                }]})
+                }]
+            })
             if (!task)
                 return {
                     isSuccess: false,
@@ -196,9 +199,9 @@ export default class AppRepository {
                     message: 'Device to unassign not found.',
                     status: StatusCode.BadRequest
                 }
-    
+
             await task.removeDevice(valve)
-            return { 
+            return {
                 isSuccess: true,
                 message: 'Device has been unassigned.',
                 status: StatusCode.Ok
@@ -213,8 +216,8 @@ export default class AppRepository {
             }
         }
     }
-//#endregion
-//#region devices
+    //#endregion
+    //#region devices
     getDevices = async () => {
         try {
             await this.#dbContext.ensureCreated()
@@ -240,7 +243,7 @@ export default class AppRepository {
             include: [{
                 model: deviceType,
                 as: 'type'
-            }]            
+            }]
         })
     }
 
@@ -261,7 +264,7 @@ export default class AppRepository {
         }
     }
 
-    addDevice = async inputDevice =>  {
+    addDevice = async inputDevice => {
         try {
             await this.#dbContext.ensureCreated()
             const inputType = await deviceType.findOne({
@@ -289,7 +292,7 @@ export default class AppRepository {
                 result: newDevice,
                 status: StatusCode.Created
             }
-        } catch (e) {             
+        } catch (e) {
             const message = `AddDevice returned error: ${e.message}`
             this.#loggerService.logError(e)
             return {
@@ -306,7 +309,7 @@ export default class AppRepository {
 
             const currentDevice = device.findByPk(inputDevice.id)
             const formatedInputDevice = {}
-            
+
             if (currentDevice.name != inputDevice.name) {
                 formatedInputDevice.name = inputDevice.name
             }
@@ -344,7 +347,7 @@ export default class AppRepository {
         }
     }
 
-    deleteDevice = async id =>  {
+    deleteDevice = async id => {
         try {
             await this.#dbContext.ensureCreated()
             const result = await device.destroy({
@@ -376,8 +379,8 @@ export default class AppRepository {
             }
         }
     }
-//#endregion
-//#region logToDb
+    //#endregion
+    //#region logToDb
     logToDb = async log => {
         try {
             await this.#dbContext.ensureCreated();
@@ -400,10 +403,10 @@ export default class AppRepository {
         } catch (e) {
             this.#loggerService.logError(`Get settings returned error: ${e.message}`)
             return null
-        }  
+        }
     }
-//#endregion
-//#region settings
+    //#endregion
+    //#region settings
     getSettings = async () => {
         try {
             await this.#dbContext.ensureCreated()
@@ -411,7 +414,7 @@ export default class AppRepository {
         } catch (e) {
             this.#loggerService.logError(`Get settings returned error: ${e.message}`)
             return null
-        }        
+        }
     }
 
     getSettingsByKey = async key => {
@@ -425,7 +428,7 @@ export default class AppRepository {
         } catch (e) {
             this.loggerService.logError(`Get settingsBy key returned error: ${e.message}`)
             return null
-        }        
+        }
     }
 
     updateSettingsValue = async (key, value) => {
@@ -436,13 +439,13 @@ export default class AppRepository {
                     key: key
                 }
             })
-    
+
             if (!settingResult)
                 return {
-                isSuccess: false, 
-                message: 'This key not exists.',
-                status: StatusCode.BadRequest
-            }
+                    isSuccess: false,
+                    message: 'This key not exists.',
+                    status: StatusCode.BadRequest
+                }
 
             settingResult.value = value
             const updateResult = await settings.update({
@@ -458,10 +461,10 @@ export default class AppRepository {
             )
             if (!updateResult || updateResult == 0)
                 return {
-                isSuccess: false,
-                message: 'Update settings value failed.',
-                status: StatusCode.InternalServerError
-            }
+                    isSuccess: false,
+                    message: 'Update settings value failed.',
+                    status: StatusCode.InternalServerError
+                }
 
             return {
                 isSuccess: true,
@@ -471,26 +474,82 @@ export default class AppRepository {
         } catch (e) {
             const message = `Update settings by key faild: ${e.message}`
             this.#loggerService.logError(message)
-            return { 
-                message: message, 
+            return {
+                message: message,
                 status: StatusCode.InternalServerError,
-                isSuccess: false 
+                isSuccess: false
             }
         }
     }
-//#endregion
-//#region deviceTypes
+    //#endregion
+    //#region deviceTypes
     async getDeviceTypes() {
-      try {
-        await this.#dbContext.ensureCreated()
-        deviceType.findAll()
-      } catch (e){
-        const message = `Get Device types error: ${e.message}`
-        this.#loggerService.logError(message)
-        return { isSuccess: false, message: message}   
-      }
-    } 
-//#enddregion 
+        try {
+            await this.#dbContext.ensureCreated()
+            deviceType.findAll()
+        } catch (e) {
+            const message = `Get Device types error: ${e.message}`
+            this.#loggerService.logError(message)
+            return { isSuccess: false, message: message }
+        }
+    }
+    //#enddregion 
+    //#region weatherPrediction
+    addWeatherPrediction = async inputPrediction => {
+        try {
+            await this.#dbContext.ensureCreated()
+
+            const weatherPredictionResult = await weatherPrediction.create(inputPrediction)
+
+            return {
+                isSuccess: true,
+                result: weatherPredictionResult,
+                status: StatusCode.Created
+            }
+        } catch (e) {
+            const message = `AddWeatherPrediction returned error: ${e.message}`
+            this.#loggerService.logError(e)
+            return {
+                isSuccess: false,
+                message: message,
+                status: StatusCode.InternalServerError
+            }
+        }
+    }
+
+    isDailyPrediction = async () => {
+        try {
+            await this.#dbContext.ensureCreated()
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+        
+            const tomorrow = new Date(today)
+            tomorrow.setDate(tomorrow.getDate() + 1)
+
+            const prediction = await weatherPrediction.findOne({
+                where: {
+                    date: {
+                        [Op.between]: [today, tomorrow]
+                    }
+                }
+            })
+
+            return {
+                isSuccess: true,
+                result: prediction != null,
+                status: StatusCode.Ok
+            }
+        } catch (e) {
+            const message = `isDailyPrediction returned error: ${e.message}`
+            this.#loggerService.logError(e)
+            return {
+                isSuccess: false,
+                message: message,
+                status: StatusCode.InternalServerError
+            }
+        }
+    }
+    //#region
 
     #simpleCatchError = async (func, errorMessage) => {
         try {

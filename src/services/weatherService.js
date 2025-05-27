@@ -27,7 +27,6 @@ const readWeatherPrediction = path =>
         if (!date || date.getDate() != new Date().getDate())
             return
 
-
         return prediction
     }
     catch (e) {
@@ -66,6 +65,10 @@ export const shouldWater = async args => {
     const prediction = await checkCurrentWeather(args)
     const predictionSum = prediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
     const isWaterNeeded = predictionSum <= 4
+
+    if (!(await args.repository.isDailyPrediction())?.result ) {
+        await args.repository.addWeatherPrediction({ rain: predictionSum })
+    }
     
     args?.logger.logInfo(`Daily rain prediction: ${predictionSum} mm/m2.`)
     if (isWaterNeeded) {

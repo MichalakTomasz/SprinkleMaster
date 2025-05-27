@@ -85,7 +85,6 @@ export const periodicTask = args =>
                 const time = args.isStart ? args.task.start : args.task.stop
                 while (!args.cancellationToken?.isCancelled) {
                     const milisecondsToExecute = computeMilisecondsToExecute(time)
-                    args.logger.logInfo(`Miliseconds to execute: ${milisecondsToExecute}.`)
                     const executeTime = computeExecuteTime(milisecondsToExecute)
                     const timeToExecute = computeTimeToExecute(milisecondsToExecute)
 

@@ -810,14 +810,14 @@ export default class TaskManager {
 
     stopScheduler = () => {
         this.#isSchedulerEnabled = false
-        this.#cancellationToken.cancel()
+        this.#cancellationToken?.cancel()
         this.#loggerService.logInfo('Scheduler has been stopped.')
 
         return true
     }
 
     pauseScheduler = () => {
-        this.#cancellationToken.cancel()
+        this.#cancellationToken?.cancel()
         this.#loggerService.logInfo('Scheduler has been paused.')
 
         return true
@@ -914,7 +914,7 @@ export default class TaskManager {
             args.logger.logInfo(`Changing task: ${args.task.name} to state: ${args.state}`)
             if (args.state == PinState.HIGH) {
                 const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
-                const shouldStart = await shouldWater({ logger: this.#loggerService })
+                const shouldStart = await shouldWater({ logger: this.#loggerService, repository: this.#repository })
                 if (!this.getIsSchedulerEnabled() || (useWeatherAssistant && !shouldStart))
                     return
 

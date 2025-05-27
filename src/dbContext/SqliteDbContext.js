@@ -3,6 +3,7 @@ import { device, initModel as initDevice } from '../models/dbModels/device.js'
 import { valveTask, initModel as initValveTask } from '../models/dbModels/valveTask.js'
 import { initModel as initDbLog } from '../models/dbModels/dbLog.js'
 import { initModel as initSettings, settings } from '../models/dbModels/settings.js'
+import { initModel as initWeatherPrediction } from '../models/dbModels/weatherPrediction.js';
 import Settings from '../models/Settings.js';
 
 export default class SqliteDbContext {
@@ -30,18 +31,16 @@ export default class SqliteDbContext {
                 this.loggerService.suppressDbLogging = true;
                 
                 try {
-                    // Initialize models first
                     initDeviceType(this.sequelize)
                     initDevice(this.sequelize)
                     initValveTask(this.sequelize)
                     initDbLog(this.sequelize)
                     initSettings(this.sequelize)
+                    initWeatherPrediction(this.sequelize)
                     this.setupAssociations()
                     
-                    // Then sync database
                     await this.sequelize.sync()
                     
-                    // Test connection
                     const isConnected = await this.testConnection();
                     if (!isConnected) {
                         throw new Error('Database connection test failed');
