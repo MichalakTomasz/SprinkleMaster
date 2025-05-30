@@ -580,4 +580,12 @@ router.get("/weatherPredictions/", async (req, res) => {
   return res.status(getResult.status).json(getResult)
 })
 
+//check weather prediction on online weather service
+router.get("/checkWeatherPredictionOnline", async (req, res) => {
+  const result = await taskManager.checkWeatherPredictionOnline()
+  
+  return res.json(result)
+})
+
+
 export default router

@@ -5,7 +5,7 @@ import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
 import { taskDelay, periodicTask, CancellationToken } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
-import { shouldWater } from './weatherService.js'
+import { shouldWater, checkCurrentWeather } from './weatherService.js'
 
 const taskNotFound = 'Task not found.'
 const emptyData = 'Empty data ware passed.'
@@ -143,7 +143,8 @@ export default class TaskManager {
                 return { 
                     isSuccess: false, 
                     message: 'The same Task already exists.', 
-                    status: StatusCode.BadRequest }
+                    status: StatusCode.BadRequest 
+                }
 
             this.pauseScheduler()
 
@@ -202,11 +203,11 @@ export default class TaskManager {
             isSuccess: true, 
             message: 'Task has been deleted.' ,
             status: StatusCode.Ok
-        } :
-            { 
-                isSuccess: false, 
-                message: 'Delete Task, database returned error.', 
-                status: StatusCode.InternalServerError }
+        } : {
+            isSuccess: false, 
+            message: 'Delete Task, database returned error.', 
+            status: StatusCode.InternalServerError 
+        }
     })
 
     assignToTask = async (taskId, valveId) =>
@@ -781,10 +782,11 @@ export default class TaskManager {
                 status: StatusCode.InternalServerError,
                 result: deviceCurrentState
             }
-
+        
+        const resultMessage = `Device: ${device.name} state changed to : ${state}.`
         return {
             isSuccess: true,
-            message: 'Valve state has been changed.',
+            message: resultMessage,
             status: StatusCode.Ok,
             result: deviceCurrentState
         }
@@ -888,6 +890,9 @@ export default class TaskManager {
             status: StatusCode.Ok
         }
     }
+
+    checkWeatherPredictionOnline = async () => 
+        await checkCurrentWeather({ logger: this.#loggerService })
     //#endregion
 
     #ensurePumpTurnedOn = () => {
@@ -919,16 +924,16 @@ export default class TaskManager {
 
     #createPeriodicTasks = tasks => {
         const taskCallback = async args => {
-            if (args.cancellationToken?.isCancelled)
+            const shouldBreakCallback = async () => {
+                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
+                const isWateringNeeded = await shouldWater({ logger: this.#loggerService, repository: this.#repository })
+                return !this.getIsSchedulerEnabled() || (useWeatherAssistant && !isWateringNeeded)
+            }
+            if (args.cancellationToken?.isCancelled || await shouldBreakCallback())
                 return
 
             args.logger.logInfo(`Changing task: ${args.task.name} to state: ${args.state}`)
             if (args.state == PinState.HIGH) {
-                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
-                const shouldStart = await shouldWater({ logger: this.#loggerService, repository: this.#repository })
-                if (!this.getIsSchedulerEnabled() || (useWeatherAssistant && !shouldStart))
-                    return
-
                 this.#ensurePumpTurnedOn()
             }
             else {
