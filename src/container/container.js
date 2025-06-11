@@ -7,6 +7,7 @@ import TaskManager from '../services/TaskManager.js';
 import ConfigurationService from '../services/ConfigurationService.js';
 import FileLoggerService from '../services/FileLoggerService.js';
 import GpioFactory from '../services/GpioFactory.js';
+import TaskQueueService from '../services/TaskQueueService.js';
 
 const container = createContainer({
   injectionMode: InjectionMode.PROXY,
@@ -45,8 +46,10 @@ container.register({
     new LoggerService(() => container.resolve('appRepository'), fileLoggerService), { lifetime: Lifetime.SINGLETON }),
   appRepository: asFunction(({ dbContext, loggerService }) =>
     new AppRepository(dbContext, loggerService), { lifetime: Lifetime.SINGLETON }),
-  taskManager: asFunction(({ appRepository, loggerService }) =>
-    new TaskManager(appRepository, loggerService), { lifetime: Lifetime.SINGLETON }),
+  taskQueueService: asFunction(() =>
+    new TaskQueueService(), { lifetime: Lifetime.SINGLETON }),
+  taskManager: asFunction(({ appRepository, loggerService, taskQueueService }) =>
+    new TaskManager(appRepository, loggerService, taskQueueService), { lifetime: Lifetime.SINGLETON }),
   gpioFactory: asFunction(({ configurationService }) =>
     new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON })
 })

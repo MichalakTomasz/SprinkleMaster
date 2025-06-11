@@ -1,6 +1,10 @@
-export const taskDelay = async delayTime =>
-    new Promise(resolve =>
-        setTimeout(resolve, delayTime))
+export const taskDelay = async args  => {
+    const promise = new Promise(resolve => {
+        args.timeoutId = setTimeout(resolve, args.milisecondsToExecute)
+    })
+    
+    return promise
+}
 
 export class CancellationToken {
     constructor() {
@@ -42,47 +46,14 @@ const computeTimeToExecute = waitTime => {
     return `${hours.toString().padStart(2, '0')} hours ${minutes.toString().padStart(2, '0')} minutes`
 }
 
-// periodic tick 1000 miliseconds
-export const periodicTask2 = args =>
-    new Promise((resolve, reject) => {
-        let setTimeoutId = null
-        const runner = async () => {
-            try {
-                const executeTime = args.isStart ? args.task.start : args.task.stop
-                const dateToday = new Date().getDate()
-                let executeDate
-                while (!args.cancellationToken?.isCancelled) {
-                    while (!args.cancellationToken?.isCancelled && executeTime != timeNowString()) {
-                        await taskDelay(1000)
-                        if (args.cancellationToken?.isCancelled) {
-                            clearTimeout(setTimeoutId)
-                            args.logger.logInfo(`Periodic Task: ${args.task.name} cancelled.`)
-                            return
-                        }
-                    }
-                    if (executeDate != dateToday) {
-                        await args.callback()
-                    }
-
-                    executeDate = new Date().getDate()
-                }
-                resolve()
-            } catch (e) {
-                args.logger.logError(`Periodic Task error: ${e.message}.`)
-                args.logger.logError(`Periodic Task error stack: ${e.stack}.`)
-                reject()
-            }
-        }
-
-        runner()
-    })
-
 export const periodicTask = args =>
     new Promise((resolve, reject) => {
-        let setTimeoutId = null
         const runner = async () => {
             try {
                 const time = args.isStart ? args.task.start : args.task.stop
+                const date = new Date()
+                const taskName = `Time: ${date.getDate().toString().padStart(2, '0')}:${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')} Name: ${args.task.name} ${args.isStart ? 'Start' : 'Stop'}`
+                const queueItem = args.taskQueueService.add(resolve, taskName)
                 while (!args.cancellationToken?.isCancelled) {
                     const milisecondsToExecute = computeMilisecondsToExecute(time)
                     const executeTime = computeExecuteTime(milisecondsToExecute)
@@ -90,16 +61,15 @@ export const periodicTask = args =>
 
                     args.logger.logInfo(`Next ${args.isStart ? 'Start' : 'Stop'} Task: ${args.task.name} will be at ${executeTime}.`)
                     args.logger.logInfo(`Time to next execute: ${timeToExecute}.`)
+                    queueItem.milisecondsToExecute = milisecondsToExecute
 
-                    await taskDelay(milisecondsToExecute)
+                    await taskDelay(queueItem)
                     if (!args.cancellationToken?.isCancelled) {
                         await args.callback()
                     }
                 }
-
-                clearTimeout(setTimeoutId)
+                args.taskQueueService.remove(queueItem.timeoutId)
                 args.logger.logInfo(`Periodic Task: ${args.task.name} cancelled.`)
-                resolve()
             } catch (e) {
                 args.logger.logError(`Periodic Task error: ${e.message}.`)
                 args.logger.logError(`Periodic Task error stack: ${e.stack}.`)
@@ -109,10 +79,3 @@ export const periodicTask = args =>
 
         runner()
     })
-
-const timeNowString = () => {
-    const date = new Date()
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${hours}:${minutes}`
-}

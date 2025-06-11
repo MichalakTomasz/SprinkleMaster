@@ -587,5 +587,18 @@ router.get("/checkWeatherPredictionOnline", async (req, res) => {
   return res.json(result)
 })
 
+//check task queue
+router.get("/taskQueue", (req, res) => {
+  const result = taskManager.getTaskQueue()
+  
+  return res.json(result)
+})
+
+//task queue size
+router.get("/taskQueueSize", (req, res) => {
+  const result = taskManager.getTaskQueueSize()
+  
+  return res.json(result)
+})
 
 export default router

@@ -20,6 +20,7 @@ export default class TaskManager {
     #cancellationToken
     #repository
     #loggerService
+    #taskQueueService
     #settings = []
     #valves = []
     #valveTasks = []
@@ -27,9 +28,10 @@ export default class TaskManager {
 
     #isSchedulerEnabled = false
 
-    constructor(appRepository, loggerService) {
+    constructor(appRepository, loggerService, taskQueueService) {
         this.#loggerService = loggerService
         this.#repository = appRepository
+        this.#taskQueueService = taskQueueService
         this.#init()
     }
 
@@ -212,6 +214,9 @@ export default class TaskManager {
 
     assignToTask = async (taskId, valveId) =>
         await this.#trackScheduler(async () => {
+
+            this.pauseScheduler()
+            
             const assignResult = await this.#repository.assignToTask(taskId, valveId)
             if (!assignResult.isSuccess)
                 return assignResult
@@ -557,7 +562,7 @@ export default class TaskManager {
 
         const areAnyOpenValve = this.#valves.some(v => v.gpioPin.getState() == PinState.HIGH)
         if (areAnyOpenValve) {
-            await taskDelay(pumpStopDelay || 3000)
+            await taskDelay({ milisecondsToExecute: pumpStopDelay || 3000 })
         }
         
         const faultResults = this.#valves.filter(v => {
@@ -587,7 +592,7 @@ export default class TaskManager {
                 this.#pump?.gpioPin.setState(PinState.LOW)
                 const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.result?.value ?? 3000
                 const pumpState = this.#pump.gpioPin.getState()
-                await taskDelay(delay)
+                await taskDelay({ milisecondsToExecute: delay })
                 if (pumpState != PinState.LOW)
                     return {
                         isSuccess: false,
@@ -632,7 +637,7 @@ export default class TaskManager {
             if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
                 this.#pump?.gpioPin.setState(PinState.LOW)
                 const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
-                await taskDelay(delay)
+                await taskDelay({ milisecondsToExecute: delay })
                 const pumpState = this.#pump.gpioPin.getState()
                 if (pumpState != PinState.LOW) {
                     return {
@@ -675,6 +680,8 @@ export default class TaskManager {
                 message: 'The Pump was turned off, but no valves found. So there are no valves to close.',
                 status: StatusCode.Ok
             }
+
+        this.pauseScheduler()
 
         const faultList = this.#valves.filter(v => {
             v.gpioPin.setState(PinState.LOW)
@@ -813,6 +820,7 @@ export default class TaskManager {
     stopScheduler = () => {
         this.#isSchedulerEnabled = false
         this.#cancellationToken?.cancel()
+        this.#taskQueueService.clearQueue()
         this.#loggerService.logInfo('Scheduler has been stopped.')
 
         return true
@@ -820,6 +828,7 @@ export default class TaskManager {
 
     pauseScheduler = () => {
         this.#cancellationToken?.cancel()
+        this.#taskQueueService.clearQueue()
         this.#loggerService.logInfo('Scheduler has been paused.')
 
         return true
@@ -894,6 +903,25 @@ export default class TaskManager {
     checkWeatherPredictionOnline = async () => 
         await checkCurrentWeather({ logger: this.#loggerService })
     //#endregion
+    //#region taskQueue
+    getTaskQueue = () => {
+        return {
+            isSuccess: true,
+            status: StatusCode.Ok,
+            message: 'Task queue.',
+            result: this.#taskQueueService.getQueue()
+        }
+    }
+
+    getTaskQueueSize = () => {
+        return {
+            isSuccess: true,
+            status: StatusCode.Ok,
+            message: 'Task queue size.',
+            result: this.#taskQueueService.getQueueSize()
+        }
+    }
+    //#endregion
 
     #ensurePumpTurnedOn = () => {
         if (!this.#pump)
@@ -950,7 +978,7 @@ export default class TaskManager {
                     }
 
                     const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
-                    await taskDelay(delay)
+                    await taskDelay({ milisecondsToExecute: delay })
                 }
             }
 
@@ -973,12 +1001,14 @@ export default class TaskManager {
                     task: task, 
                     state: PinState.HIGH, 
                     logger: this.#loggerService, 
-                    cancellationToken: this.#cancellationToken 
+                    cancellationToken: this.#cancellationToken,
+                    taskQueueService: this.#taskQueueService
                 }),
                 isStart: true,
                 task: task, 
                 cancellationToken: this.#cancellationToken, 
-                logger: this.#loggerService
+                logger: this.#loggerService,
+                taskQueueService: this.#taskQueueService
             })
             periodicTask({
                 callback: async () => await taskCallback({ 
@@ -986,12 +1016,14 @@ export default class TaskManager {
                     task: task, 
                     state: PinState.LOW, 
                     logger: this.#loggerService, 
-                    cancellationToken: this.#cancellationToken 
+                    cancellationToken: this.#cancellationToken,
+                    taskQueueService: this.#taskQueueService
                 }),                     
                 isStart: false,
                 task: task, 
                 cancellationToken: this.#cancellationToken, 
-                logger: this.#loggerService
+                logger: this.#loggerService,
+                taskQueueService: this.#taskQueueService
             })
         })
     }
