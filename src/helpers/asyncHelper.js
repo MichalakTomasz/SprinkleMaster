@@ -46,13 +46,18 @@ const computeTimeToExecute = waitTime => {
     return `${hours.toString().padStart(2, '0')} hours ${minutes.toString().padStart(2, '0')} minutes`
 }
 
+const pad = (n) => n.toString().padStart(2, '0');
+const formatDate = () => {
+    const date = new Date();
+    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}-${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 export const periodicTask = args =>
     new Promise((resolve, reject) => {
         const runner = async () => {
             try {
                 const time = args.isStart ? args.task.start : args.task.stop
-                const date = new Date()
-                const taskName = `Time: ${date.getDate().toString().padStart(2, '0')}:${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')} Name: ${args.task.name} ${args.isStart ? 'Start' : 'Stop'}`
+                const taskName = `${formatDate()} Name: ${args.task.name} ${args.isStart ? 'Start' : 'Stop'}`
                 const queueItem = args.taskQueueService.add(resolve, taskName)
                 while (!args.cancellationToken?.isCancelled) {
                     const milisecondsToExecute = computeMilisecondsToExecute(time)

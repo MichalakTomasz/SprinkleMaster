@@ -937,17 +937,24 @@ export default class TaskManager {
             pump.gpioPin.setState(PinState.HIGH)
         }
         
-        const isPumpTurnedOn = pump.gpioPin.getState()
+        const pumpState = pump.gpioPin.getState()
 
-        return isPumpTurnedOn != PinState.HIGH ? {
+        const isStateValid = pumpState == PinState.HIGH
+        const succesMessage = `The Pump is turned on, current state: ${pumpState}.`
+        
+        if (isStateValid) {
+            this.#loggerService.logInfo(succesMessage)
+        }
+
+        return isStateValid ? {
+            isSuccess: true,
+            message: succesMessage,
+            status: StatusCode.InternalServerError
+        } : {
             isSuccess: false,
             message: 'Error could not start the Pump.',
             status: StatusCode.InternalServerError
-        } : {
-            isSuccess: true,
-            message: 'The Pump is turned on.',
-            status: StatusCode.InternalServerError
-        }
+        } 
     }
 
     #createPeriodicTasks = tasks => {
@@ -967,6 +974,9 @@ export default class TaskManager {
             else {
                 const areOtherOpenValves = args.devices?.some(d => 
                     !args.task.devices?.some(td => td.id == d.id) && d.gpioPin.getState() == PinState.HIGH)
+                
+                args.logger.logInfo(`Closing task: ${args.task.name}, are other open valves: ${areOtherOpenValves}`)
+                
                 if (!areOtherOpenValves) {
                     this.#pump.gpioPin.setState(PinState.LOW)
                     const pumpState = this.#pump.gpioPin.getState()
@@ -990,14 +1000,14 @@ export default class TaskManager {
                     return
                 }
 
-                args.logger.logInfo(`Device: ${device.name} state: ${currentState} after check.`)
+                args.logger.logInfo(`Device: ${device.name} current state: ${currentState}.`)
             })
         }   
 
         tasks.forEach(task => {
             periodicTask({
                 callback: async () => await taskCallback({ 
-                    devices: this.devices, 
+                    devices: this.#valves, 
                     task: task, 
                     state: PinState.HIGH, 
                     logger: this.#loggerService, 
@@ -1012,7 +1022,7 @@ export default class TaskManager {
             })
             periodicTask({
                 callback: async () => await taskCallback({ 
-                    devices: this.devices, 
+                    devices: this.#valves, 
                     task: task, 
                     state: PinState.LOW, 
                     logger: this.#loggerService, 
