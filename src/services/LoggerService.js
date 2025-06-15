@@ -77,7 +77,7 @@ export default class LoggerService {
         }
 
         if (this.#addFileLogging) {
-            this.#fileLoggerService.logAsync(log)
+            this.#fileLoggerService.log(log)
         }
     }
     
