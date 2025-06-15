@@ -29,7 +29,7 @@ export default class GpioPin {
         try {
             this.#ensureCreated()
             this.#pin.digitalWrite(convertPinState(state))
-            this.#loggerService.logInfo(`Pin ${this.#pinNo} state changed to ${state}`)
+            this.#loggerService.logDebug(`Pin ${this.#pinNo} state changed to ${state}`)
         } catch (e) {
             this.#loggerService.logError(e.message)
         }        

@@ -532,7 +532,8 @@ export default class TaskManager {
 
         this.pauseScheduler()
 
-        await this.turnOffPump(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+        const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
+        await this.turnOffPump(delay)
 
         const deleteResult = await this.#repository.deleteDevice(this.#pump.id)
         if (!deleteResult.isSuccess)
@@ -562,7 +563,7 @@ export default class TaskManager {
 
         const areAnyOpenValve = this.#valves.some(v => v.gpioPin.getState() == PinState.HIGH)
         if (areAnyOpenValve) {
-            await taskDelay({ milisecondsToExecute: pumpStopDelay || 3000 })
+            await taskDelay({ milisecondsToExecute: pumpStopDelay})
         }
         
         const faultResults = this.#valves.filter(v => {
@@ -636,7 +637,7 @@ export default class TaskManager {
             const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
             if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
                 this.#pump?.gpioPin.setState(PinState.LOW)
-                const delay = parseInt(this.#settings.find(s => s.key == Settings.pumpStopDelay)?.value)
+                const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
                 await taskDelay({ milisecondsToExecute: delay })
                 const pumpState = this.#pump.gpioPin.getState()
                 if (pumpState != PinState.LOW) {
@@ -669,7 +670,7 @@ export default class TaskManager {
     })
 
     closeAllValves = async () => await this.#trackScheduler(async () => {
-        const delay = this.#settings.find(s => s.key == Settings.pumpStopDelay)?.valve
+        const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
         const shutdownPumpResult = await this.turnOffPump(delay)
         if (!shutdownPumpResult.isSuccess)
             return shutdownPumpResult
@@ -987,7 +988,7 @@ export default class TaskManager {
                         args.logger.logError("Error turn off pump.")
                     }
 
-                    const delay = this.getSettingsByKey(Settings.pumpStopDelay)?.value ?? 3000
+                    const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
                     await taskDelay({ milisecondsToExecute: delay })
                 }
             }

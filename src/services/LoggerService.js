@@ -46,6 +46,12 @@ export default class LoggerService {
         this.#log(message, LogLevel.INFO)
     }
 
+    logDebug(message) {
+        if (this.#isDebugMode()) {
+            this.#log(message, LogLevel.DEBUG)
+        }
+    }
+
     logError(message) {
         this.#log(message, LogLevel.ERROR)
     }
@@ -73,5 +79,9 @@ export default class LoggerService {
         if (this.#addFileLogging) {
             this.#fileLoggerService.logAsync(log)
         }
+    }
+    
+    #isDebugMode() {
+        return process.execArgv.some(arg => /^--(inspect|debug)(-brk)?=?/.test(arg))
     }
 }

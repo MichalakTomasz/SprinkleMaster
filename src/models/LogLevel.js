@@ -1,7 +1,8 @@
 const LogLevel = {
     INFO: 'INFO',
     WARNING: 'WARNING',
-    ERROR: 'ERROR'
+    ERROR: 'ERROR',
+    DEBUG: 'DEBUG'
 }
 
 export default LogLevel

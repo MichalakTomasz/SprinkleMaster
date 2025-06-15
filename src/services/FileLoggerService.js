@@ -14,14 +14,14 @@ export default class FileLoggerService {
     log(log) {
         try {
             if (typeof log == String) {
-                fs.writeFileSync(this.#path, message, utf8)
+                fs.appendFileSync(this.#path, message, utf8)
             }
             if (typeof log === 'object') {
                 if (!hasLogFields(log)) {
                     console.error(wrongJsonSchema)
                     return
                 }
-                fs.appnedFileSync(this.#path, formatMessageFromJson(log), utf8)
+                fs.appendFileSync(this.#path, formatMessageFromJson(log), utf8)
             }
         } catch (e) {
             cosole.error(e)
@@ -33,7 +33,7 @@ export default class FileLoggerService {
             return
 
         if (typeof log === String) {
-            fs.appendFileSync(this.#path, log, utf8)
+            fs.appendFile(this.#path, log, utf8)
         }
 
         if (typeof log  === 'object') {
