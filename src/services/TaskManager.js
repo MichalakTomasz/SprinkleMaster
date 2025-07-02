@@ -748,7 +748,7 @@ export default class TaskManager {
         }
     }
 
-    changeValveState = (id, state) => {
+    changeValveState = async (id, state) => {
         const pinNo = this.#valves.find(v => v.id == id)?.pinNo
         if (!pinNo)
             return {
@@ -757,10 +757,10 @@ export default class TaskManager {
                 status: StatusCode.BadRequest
             }
 
-        return this.changePinState(pinNo, state)
+        return await this.changePinState(pinNo, state)
     }
 
-    changePinState = (pinNo, state) => this.#trackScheduler(async () => {
+    changePinState = async (pinNo, state) => await this.#trackScheduler(async () => {
         const device = this.#valves?.find(d => d.pinNo == pinNo)
         if (!device)
             return {
