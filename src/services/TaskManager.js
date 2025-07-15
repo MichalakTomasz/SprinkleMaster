@@ -965,14 +965,20 @@ export default class TaskManager {
                 const isWateringNeeded = await shouldWater({ logger: this.#loggerService, repository: this.#repository })
                 return !this.getIsSchedulerEnabled() || (useWeatherAssistant && !isWateringNeeded)
             }
-            if (args.cancellationToken?.isCancelled || await shouldBreakCallback())
-                return
-
+            
             args.logger.logInfo(`Changing task: ${args.task.name} to state: ${args.state}`)
             if (args.state == PinState.HIGH) {
+                if (args.cancellationToken?.isCancelled || await shouldBreakCallback())
+                    return
+                
                 this.#ensurePumpTurnedOn()
+                args.taskState.isRunning = true
             }
             else {
+                if (!args.taskState.isRunning) {
+                    return
+                }
+                
                 const areOtherOpenValves = args.devices?.some(d => 
                     !args.task.devices?.some(td => td.id == d.id) && d.gpioPin.getState() == PinState.HIGH)
                 
@@ -991,6 +997,8 @@ export default class TaskManager {
                     const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
                     await taskDelay({ milisecondsToExecute: delay })
                 }
+    
+                args.taskState.isRunning = false             
             }
 
             args.task.devices?.forEach(device => {
@@ -1006,6 +1014,9 @@ export default class TaskManager {
         }   
 
         tasks.forEach(task => {
+            const taskState = {
+                isRunning: false
+            }
             periodicTask({
                 callback: async () => await taskCallback({ 
                     devices: this.#valves, 
@@ -1013,7 +1024,8 @@ export default class TaskManager {
                     state: PinState.HIGH, 
                     logger: this.#loggerService, 
                     cancellationToken: this.#cancellationToken,
-                    taskQueueService: this.#taskQueueService
+                    taskQueueService: this.#taskQueueService,
+                    taskState: taskState
                 }),
                 isStart: true,
                 task: task, 
@@ -1028,7 +1040,8 @@ export default class TaskManager {
                     state: PinState.LOW, 
                     logger: this.#loggerService, 
                     cancellationToken: this.#cancellationToken,
-                    taskQueueService: this.#taskQueueService
+                    taskQueueService: this.#taskQueueService,
+                    taskState: taskState
                 }),                     
                 isStart: false,
                 task: task, 

@@ -24,7 +24,7 @@ export default class FileLoggerService {
                 fs.appendFileSync(this.#path, formatMessageFromJson(log), utf8)
             }
         } catch (e) {
-            cosole.error(e)
+            console.error(e)
         }
     }
 
