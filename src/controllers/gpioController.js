@@ -580,7 +580,7 @@ router.post('/valve/state', [
   const valveChangeStateResult = await taskManager.changeValveState(id, state)
   if (valveChangeStateResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceStatusChanged,
+      type: WebSocketMessageType.DeviceStatusChanged,
       payload: { id, state },
       clientId: getClientId(req),
       timestamp: new Date(),

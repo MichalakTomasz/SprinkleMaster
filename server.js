@@ -26,7 +26,7 @@ const dirname = path.dirname(filename)
 app.use(cors({
   orign: 'http://localhost:5173',
   methods: "GET,POST,DELETE, PATCH",
-  allowedHeaders: "Content-Type",
+  allowedHeaders: ["Content-Type", "clientId"]
 }))
 
 app.use(express.json())
