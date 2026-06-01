@@ -5,14 +5,17 @@ import { CreateClientDevice } from "../helpers/deviceHelper.js"
 import container from '../container/container.js'
 import StatusCode from "../models/StatusCode.js"
 import { isGpioCommonPin } from "../helpers/pinHelper.js"
+import WebSocketMessageType  from "../models/WebSocketMessagType.js"
 
 const taskManager = container.resolve('taskManager')
+const webSocketService = container.resolve('webSocketService')
 const router = express.Router()
 
 const internalServerError = "Internal server error."
 const valveNameRequired = 'Valve name is required.'
 const pinNoRequired = 'Pin no is required.'
 const typeMustBeVavle = 'Type must be "VALVE" type.'
+const getClientId = (req) => req.header('clientId') ?? req.header('x-client-id') ?? null
 
 const Valve = 'VALVE'
 const Pump = 'PUMP'
@@ -42,6 +45,12 @@ router.get('/task/getById/:id', [
   if (!result.isSuccess) 
     return res.status(result.status).json(result)
 
+  webSocketService.sendMessage(JSON.stringify({
+    type: WebSocketMessage.TaskStatusChanged,
+    payload: CreateClientTask(result.result),
+    clientId: getClientId(req),
+    timestamp: new Date(),
+  }))
   return res.status(result.status).json(CreateClientTask(result.result))
 })
 
@@ -93,7 +102,15 @@ router.post("/task/", [
   const newTask = req.body
 
   const result = await taskManager.addTask(newTask)
-
+  
+  if (result.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.TaskAdded,
+      payload: CreateClientTask(result.result),
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
   return res.status(result.status).json(result)
 })
 
@@ -117,6 +134,14 @@ router.patch("/task/", [
   const taskToUpdate = req.body
 
   const result = await taskManager.updateTask(taskToUpdate)
+  if (result.isSuccess) { 
+      webSocketService.sendMessage(JSON.stringify({
+        type: WebSocketMessage.TaskUpdated,
+        payload: CreateClientTask(result.result),
+        clientId: getClientId(req),
+        timestamp: new Date(),
+      }))
+  }
 
   return res.status(result.status).json(result)
 })
@@ -136,6 +161,15 @@ router.delete('/task/:id', [
   const id = req.params.id
   
   const result = await taskManager.deleteTask(id)
+  if (result.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.TaskDeleted,
+      payload: { id },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
+
   res.status(result.status).json(result)
 })
 
@@ -162,6 +196,15 @@ router.post('/task/assign', [
     const valveId = req.body.valveId
     const assignResult = await taskManager.assignToTask(taskId, valveId)
     
+    if (assignResult.isSuccess) {
+      webSocketService.sendMessage(JSON.stringify({
+        type: WebSocketMessage.ValveAssignedToTask,
+        payload: { taskId, valveId },
+        clientId: getClientId(req),
+        timestamp: new Date(),
+      }))
+    }
+
     return res.status(assignResult.status).json(assignResult)
 })
 
@@ -187,7 +230,15 @@ router.post('/task/unassign', [
     const taskId = req.body.taskId
     const valveId = req.body.valveId
     const unassignResult = await taskManager.unassignFromTask(taskId, valveId)
-    
+    if (unassignResult.isSuccess) {
+      webSocketService.sendMessage(JSON.stringify({
+        type: WebSocketMessage.ValveUnassignedFromTask,
+        payload: { taskId, valveId },
+        clientId: getClientId(req),
+        timestamp: new Date(),
+      }))
+    }
+
     return res.status(unassignResult.status).json(unassignResult)
 })
 
@@ -216,12 +267,30 @@ router.post('/task/state', [
 
   const changeStateResult = await taskManager.changeTaskStates(id, state)
 
+  if (changeStateResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.TaskStatusChanged,
+      payload: { id, state },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
+
   return res.status(changeStateResult.status).json(changeStateResult)
 })
 
-//Shut the Pump down and close every valves in tasks.
+//Should the Pump down and close every valves in tasks.
 router.post('/closeAll', async (req, res) => {
   const closeAllResult = await taskManager.closeAllValves()
+  
+  if (closeAllResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.AllValvesClosed,
+      payload: null,
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
   
   return res.status(closeAllResult.status).json(closeAllResult)
 })
@@ -262,7 +331,15 @@ router.post('/pump', [
   const pinNo = req.body.pinNo
   
   const addPumpResult = await taskManager.addPump(pinNo)
-  
+  if (addPumpResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceAdded,
+      payload: { pinNo },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
+
   return res.status(addPumpResult.status).json(addPumpResult)
 })
 
@@ -293,6 +370,14 @@ router.patch('/pump', [
   const pinNo = req.body.pinNo
 
   const changePumpPinNoResult = await taskManager.changePumpPinNo(pinNo)
+  if (changePumpPinNoResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceUpdated,
+      payload: { pinNo },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
   
   return res.status(changePumpPinNoResult.status).json(changePumpPinNoResult)
 })
@@ -300,7 +385,15 @@ router.patch('/pump', [
 //Delete Pump
 router.delete('/pump', async (req, res) => {
   const deletePumpResult = await taskManager.deletePump()
-  
+  if (deletePumpResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceDeleted,
+      payload: null,
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
+
   return res.status(deletePumpResult.status).json(deletePumpResult)
 })
 //#endregion
@@ -343,6 +436,14 @@ router.post('/valve',[
     
   const valve = req.body
   const addResult = await taskManager.addValve(valve)
+  if (addResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceAdded,
+      payload: CreateClientDevice(addResult.result),
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
 
   return res.status(addResult.status).json(addResult)
 })
@@ -372,6 +473,14 @@ router.patch('/valve', [
   
   const valve = req.body
   const updateResult = await taskManager.updateValve(valve)
+  if (updateResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceUpdated,
+      payload: CreateClientDevice(updateResult.result),
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
 
   return res.status(updateResult.status).json(updateResult)
 })
@@ -392,7 +501,16 @@ router.delete('/valve/:id', [
 
     const id = req.params.id
     const deleteResult = await taskManager.deleteValve(id)
-      return res.status(deleteResult.status).json(deleteResult)
+    if (deleteResult.isSuccess) {
+      webSocketService.sendMessage(JSON.stringify({
+        type: WebSocketMessage.DeviceDeleted,
+        payload: { id },
+        clientId: getClientId(req),
+        timestamp: new Date(),
+      }))
+    }
+
+    return res.status(deleteResult.status).json(deleteResult)
   })
 
 //Get current state of the Valve
@@ -460,6 +578,14 @@ router.post('/valve/state', [
   const state = req.body.state
      
   const valveChangeStateResult = await taskManager.changeValveState(id, state)
+  if (valveChangeStateResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessage.DeviceStatusChanged,
+      payload: { id, state },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+  }
   
   return res.status(valveChangeStateResult.status).json(valveChangeStateResult)
 })

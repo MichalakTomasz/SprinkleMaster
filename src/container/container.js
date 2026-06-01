@@ -8,6 +8,7 @@ import ConfigurationService from '../services/ConfigurationService.js';
 import FileLoggerService from '../services/FileLoggerService.js';
 import GpioFactory from '../services/GpioFactory.js';
 import TaskQueueService from '../services/TaskQueueService.js';
+import WebSocketService from '../services/WebSocketService.js';
 
 const container = createContainer({
   injectionMode: InjectionMode.PROXY,
@@ -51,7 +52,9 @@ container.register({
   taskManager: asFunction(({ appRepository, loggerService, taskQueueService }) =>
     new TaskManager(appRepository, loggerService, taskQueueService), { lifetime: Lifetime.SINGLETON }),
   gpioFactory: asFunction(({ configurationService }) =>
-    new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON })
+    new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON }),
+  webSocketService: asFunction(({ loggerService }) =>
+    new WebSocketService(loggerService), { lifetime: Lifetime.SINGLETON })
 })
 
 export default container

@@ -1,5 +1,6 @@
 import container from './src/container/container.js';
 import express from 'express'
+
 import path from 'path'
 import { fileURLToPath } from 'url'
 import addEndpointsLogging from './src/middleware/addEndpointsLogging.js';
@@ -13,6 +14,7 @@ const app = express();
 const PORT = 3200;
 const loggerService = container.resolve('loggerService')
 const configurationService = container.resolve('configurationService')
+const webSocketService = container.resolve('webSocketService')
 
 loggerService.addConsoleLogging = true
 loggerService.addDbLogging = false
@@ -45,5 +47,7 @@ app.use('*', (req, res) => res.status(StatusCode.NotFound).json({message: 'Endpo
 const server = app.listen(PORT, () => {
     loggerService.logInfo(`Server started on port ${PORT}`);
 })
+
+webSocketService.init(server)
 
 setupProcessHandlers(server)
