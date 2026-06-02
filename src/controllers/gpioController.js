@@ -45,12 +45,6 @@ router.get('/task/getById/:id', [
   if (!result.isSuccess) 
     return res.status(result.status).json(result)
 
-  webSocketService.sendMessage(JSON.stringify({
-    type: WebSocketMessageType.TaskStatusChanged,
-    payload: CreateClientTask(result.result),
-    clientId: getClientId(req),
-    timestamp: new Date(),
-  }))
   return res.status(result.status).json(CreateClientTask(result.result))
 })
 
