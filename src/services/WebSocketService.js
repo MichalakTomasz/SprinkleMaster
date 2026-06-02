@@ -5,7 +5,6 @@ export default class WebSocketService {
         this.loggerService = loggerService;
     }
 
-    
     init(server) {
         this.ws = new WebSocketServer({ server })
 

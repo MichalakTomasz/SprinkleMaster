@@ -46,7 +46,7 @@ router.get('/task/getById/:id', [
     return res.status(result.status).json(result)
 
   webSocketService.sendMessage(JSON.stringify({
-    type: WebSocketMessage.TaskStatusChanged,
+    type: WebSocketMessageType.TaskStatusChanged,
     payload: CreateClientTask(result.result),
     clientId: getClientId(req),
     timestamp: new Date(),
@@ -105,7 +105,7 @@ router.post("/task/", [
   
   if (result.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.TaskAdded,
+      type: WebSocketMessageType.TaskAdded,
       payload: CreateClientTask(result.result),
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -136,7 +136,7 @@ router.patch("/task/", [
   const result = await taskManager.updateTask(taskToUpdate)
   if (result.isSuccess) { 
       webSocketService.sendMessage(JSON.stringify({
-        type: WebSocketMessage.TaskUpdated,
+        type: WebSocketMessageType.TaskUpdated,
         payload: CreateClientTask(result.result),
         clientId: getClientId(req),
         timestamp: new Date(),
@@ -163,7 +163,7 @@ router.delete('/task/:id', [
   const result = await taskManager.deleteTask(id)
   if (result.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.TaskDeleted,
+      type: WebSocketMessageType.TaskDeleted,
       payload: { id },
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -198,7 +198,7 @@ router.post('/task/assign', [
     
     if (assignResult.isSuccess) {
       webSocketService.sendMessage(JSON.stringify({
-        type: WebSocketMessage.ValveAssignedToTask,
+        type: WebSocketMessageType.ValveAssignedToTask,
         payload: { taskId, valveId },
         clientId: getClientId(req),
         timestamp: new Date(),
@@ -232,7 +232,7 @@ router.post('/task/unassign', [
     const unassignResult = await taskManager.unassignFromTask(taskId, valveId)
     if (unassignResult.isSuccess) {
       webSocketService.sendMessage(JSON.stringify({
-        type: WebSocketMessage.ValveUnassignedFromTask,
+        type: WebSocketMessageType.ValveUnassignedFromTask,
         payload: { taskId, valveId },
         clientId: getClientId(req),
         timestamp: new Date(),
@@ -269,7 +269,7 @@ router.post('/task/state', [
 
   if (changeStateResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.TaskStatusChanged,
+      type: WebSocketMessageType.TaskStatusChanged,
       payload: { id, state },
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -285,7 +285,7 @@ router.post('/closeAll', async (req, res) => {
   
   if (closeAllResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.AllValvesClosed,
+      type: WebSocketMessageType.AllValvesClosed,
       payload: null,
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -333,7 +333,7 @@ router.post('/pump', [
   const addPumpResult = await taskManager.addPump(pinNo)
   if (addPumpResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceAdded,
+      type: WebSocketMessageType.DeviceAdded,
       payload: { pinNo },
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -372,7 +372,7 @@ router.patch('/pump', [
   const changePumpPinNoResult = await taskManager.changePumpPinNo(pinNo)
   if (changePumpPinNoResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceUpdated,
+      type: WebSocketMessageType.DeviceUpdated,
       payload: { pinNo },
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -387,7 +387,7 @@ router.delete('/pump', async (req, res) => {
   const deletePumpResult = await taskManager.deletePump()
   if (deletePumpResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceDeleted,
+      type: WebSocketMessageType.DeviceDeleted,
       payload: null,
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -438,7 +438,7 @@ router.post('/valve',[
   const addResult = await taskManager.addValve(valve)
   if (addResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceAdded,
+      type: WebSocketMessageType.DeviceAdded,
       payload: CreateClientDevice(addResult.result),
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -475,7 +475,7 @@ router.patch('/valve', [
   const updateResult = await taskManager.updateValve(valve)
   if (updateResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
-      type: WebSocketMessage.DeviceUpdated,
+      type: WebSocketMessageType.DeviceUpdated,
       payload: CreateClientDevice(updateResult.result),
       clientId: getClientId(req),
       timestamp: new Date(),
@@ -503,7 +503,7 @@ router.delete('/valve/:id', [
     const deleteResult = await taskManager.deleteValve(id)
     if (deleteResult.isSuccess) {
       webSocketService.sendMessage(JSON.stringify({
-        type: WebSocketMessage.DeviceDeleted,
+        type: WebSocketMessageType.DeviceDeleted,
         payload: { id },
         clientId: getClientId(req),
         timestamp: new Date(),

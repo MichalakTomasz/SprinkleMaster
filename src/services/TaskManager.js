@@ -50,7 +50,8 @@ export default class TaskManager {
             }
 
             const areActiveTasks = this.#valveTasks.some(v => v.isActive)
-            if (this.#settings.find(s => s.key == Settings.autostartScheduler)?.value && this.#pump && areActiveTasks) {
+            const autostartScheduler = this.#settings.find(s => s.key == Settings.autostartScheduler)?.value
+            if (Boolean(Number(autostartScheduler)) && this.#pump && areActiveTasks) {
                 this.runScheduler()
             }
         } catch (e) {

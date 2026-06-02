@@ -36,7 +36,7 @@ app.use(addEndpointsLogging)
 const ipAddress = getServerIP()
 configurationService.saveServerIp(path.join(dirname, 'client', 'ipAddress.json'), ipAddress)
 
-app.get('', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(path.join(dirname, 'client', 'index.html'));
 });
 
