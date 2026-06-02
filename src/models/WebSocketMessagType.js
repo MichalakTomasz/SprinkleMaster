@@ -10,6 +10,9 @@ const WebSocketMessageType = {
     DeviceDeleted : 'DeviceDeleted',
     DeviceStatusChanged : 'DeviceStatusChanged',
     AllValvesClosed : 'AllValvesClosed',
+    SchedulerStateChanged : 'SchedulerStateChanged',
+    SettingsKeyChanged : 'SettingsKeyChanged',
+    CloseAllValvesCommand : 'CloseAllValvesCommand',
 }
 
 export default WebSocketMessageType

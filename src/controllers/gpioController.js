@@ -608,6 +608,13 @@ router.get('/isSchedulerEnabled', (req, res) => {
 router.post('/runScheduler', (req, res) => {
   const result = taskManager.runScheduler()
   if (result) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessageType.SchedulerStateChanged,
+      payload: { isEnabled: true },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+
     return res.status(StatusCode.Ok).json({
       isSuccess: true,
       messages: 'Scheduler has been started.',
@@ -626,6 +633,13 @@ router.post('/runScheduler', (req, res) => {
 router.post('/stopScheduler', (req, res) => {
   const result = taskManager.stopScheduler()
   if (result) {
+    webSocketService.sendMessage(JSON.stringify({
+      type: WebSocketMessageType.SchedulerStateChanged,
+      payload: { isEnabled: false },
+      clientId: getClientId(req),
+      timestamp: new Date(),
+    }))
+    
     return res.status(StatusCode.Ok).json({
       isSuccess: true,
       message: 'Scheduler has been stopped.',
@@ -694,6 +708,14 @@ router.patch('/settings', [
 
   const setting = req.body
   const settingsResult = await taskManager.updateSettings(setting)
+  if(settingsResult.isSuccess) {
+    webSocketService.sendMessage(JSON.stringify({
+        type: WebSocketMessageType.SettingsKeyChanged,
+        payload: { settings },
+        clientId: getClientId(req),
+        timestamp: new Date(),
+      }))
+    }
 
   return res.status(settingsResult.status).json(settingsResult)
 })

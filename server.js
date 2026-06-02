@@ -33,7 +33,7 @@ app.use(express.json())
 app.use(express.static(path.join(dirname, 'client')))
 app.use(addEndpointsLogging)
 
-const ipAddress = getServerIP()
+const ipAddress = await getServerIP()
 configurationService.saveServerIp(path.join(dirname, 'client', 'ipAddress.json'), ipAddress)
 
 app.get('/', (req, res) => {
