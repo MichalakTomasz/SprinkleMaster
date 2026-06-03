@@ -705,7 +705,7 @@ router.patch('/settings', [
   if(settingsResult.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
         type: WebSocketMessageType.SettingsKeyChanged,
-        payload: { settings },
+        payload: { setting },
         clientId: getClientId(req),
         timestamp: new Date(),
       }))
