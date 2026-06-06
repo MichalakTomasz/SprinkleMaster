@@ -13,6 +13,7 @@ const WebSocketMessageType = {
     SchedulerStateChanged : 'SchedulerStateChanged',
     SettingsKeyChanged : 'SettingsKeyChanged',
     CloseAllValvesCommand : 'CloseAllValvesCommand',
+    ServerClosing : 'ServerClosing',
 }
 
 export default WebSocketMessageType
