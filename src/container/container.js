@@ -49,12 +49,12 @@ container.register({
     new AppRepository(dbContext, loggerService), { lifetime: Lifetime.SINGLETON }),
   taskQueueService: asFunction(() =>
     new TaskQueueService(), { lifetime: Lifetime.SINGLETON }),
-  taskManager: asFunction(({ appRepository, loggerService, taskQueueService }) =>
-    new TaskManager(appRepository, loggerService, taskQueueService), { lifetime: Lifetime.SINGLETON }),
-  gpioFactory: asFunction(({ configurationService }) =>
-    new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON }),
   webSocketService: asFunction(({ loggerService }) =>
-    new WebSocketService(loggerService), { lifetime: Lifetime.SINGLETON })
+    new WebSocketService(loggerService), { lifetime: Lifetime.SINGLETON }),
+  taskManager: asFunction(({ appRepository, loggerService, taskQueueService, webSocketService }) =>
+    new TaskManager(appRepository, loggerService, taskQueueService, webSocketService), { lifetime: Lifetime.SINGLETON }),
+  gpioFactory: asFunction(({ configurationService }) =>
+    new GpioFactory(configurationService), { lifetime: Lifetime.SINGLETON })
 })
 
 export default container

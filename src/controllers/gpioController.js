@@ -5,7 +5,7 @@ import { CreateClientDevice } from "../helpers/deviceHelper.js"
 import container from '../container/container.js'
 import StatusCode from "../models/StatusCode.js"
 import { isGpioCommonPin } from "../helpers/pinHelper.js"
-import WebSocketMessageType  from "../models/WebSocketMessagType.js"
+import WebSocketMessageType  from "../models/WebSocketMessageType.js"
 
 const taskManager = container.resolve('taskManager')
 const webSocketService = container.resolve('webSocketService')
@@ -100,7 +100,7 @@ router.post("/task/", [
   if (result.isSuccess) {
     webSocketService.sendMessage(JSON.stringify({
       type: WebSocketMessageType.TaskAdded,
-      payload: CreateClientTask(result.result),
+      payload: result.result,
       clientId: getClientId(req),
       timestamp: new Date(),
     }))
@@ -131,7 +131,7 @@ router.patch("/task/", [
   if (result.isSuccess) { 
       webSocketService.sendMessage(JSON.stringify({
         type: WebSocketMessageType.TaskUpdated,
-        payload: CreateClientTask(result.result),
+        payload: result.result,
         clientId: getClientId(req),
         timestamp: new Date(),
       }))

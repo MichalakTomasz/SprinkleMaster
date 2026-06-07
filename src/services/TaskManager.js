@@ -1,11 +1,13 @@
 import { isGpioCommonPin } from '../helpers/pinHelper.js'
 import StatusCode from '../models/StatusCode.js'
 import PinState from '../models/PinState.js'
+import WebSocketMessageType from '../models/WebSocketMessageType.js'
 import { CreateServerTask, CreateClientTask } from '../helpers/taskHelper.js'
 import { CreateServerDevice, CreateClientDevice, UpdateServerDevice } from '../helpers/deviceHelper.js'
 import { taskDelay, periodicTask, CancellationToken } from '../helpers/asyncHelper.js'
 import Settings from '../models/Settings.js'
 import { shouldWater, checkCurrentWeather } from './weatherService.js'
+
 
 const taskNotFound = 'Task not found.'
 const emptyData = 'Empty data ware passed.'
@@ -21,6 +23,7 @@ export default class TaskManager {
     #repository
     #loggerService
     #taskQueueService
+    #webSocketService
     #settings = []
     #valves = []
     #valveTasks = []
@@ -28,10 +31,11 @@ export default class TaskManager {
 
     #isSchedulerEnabled = false
 
-    constructor(appRepository, loggerService, taskQueueService) {
+    constructor(appRepository, loggerService, taskQueueService, webSocketService) {
         this.#loggerService = loggerService
         this.#repository = appRepository
         this.#taskQueueService = taskQueueService
+        this.#webSocketService = webSocketService
         this.#init()
     }
 
@@ -1012,6 +1016,13 @@ export default class TaskManager {
 
                 args.logger.logInfo(`Device: ${device.name} current state: ${currentState}.`)
             })
+            
+            this.#webSocketService.sendMessage(JSON.stringify({ 
+                type: WebSocketMessageType.TaskStatusChanged, 
+                payload: { taskId: `${args.task.id}`, state: `${args.state}` },
+                clientId: null,
+                timestamp: new Date()
+            }))
         }   
 
         tasks.forEach(task => {

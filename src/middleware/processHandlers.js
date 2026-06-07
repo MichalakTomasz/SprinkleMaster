@@ -1,5 +1,5 @@
 import container from "../container/container.js"
-import WebSocketMessageType from "../models/WebSocketMessagType.js"
+import WebSocketMessageType from "../models/WebSocketMessageType.js"
 
 const setupProcessHandlers = (server) => {
     if (!server) {
