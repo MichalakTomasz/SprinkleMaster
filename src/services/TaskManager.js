@@ -173,9 +173,6 @@ export default class TaskManager {
             beforeUpdateTask.period = task.period
             beforeUpdateTask.isActive = task.isActive
 
-            // const updatedIndex = this.#valveTasks.findIndex(t => t.id == task.id)
-            // this.#valveTasks.splice(updatedIndex, 1, CreateServerTask(beforeUpdateTask))
-
             const updatedTask = this.#valveTasks.find(t => t.id == task.id)
 
             return {
@@ -966,7 +963,7 @@ export default class TaskManager {
     #createPeriodicTasks = tasks => {
         const taskCallback = async args => {
             const shouldBreakCallback = async () => {
-                const useWeatherAssistant = this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? false
+                const useWeatherAssistant = Boolean(Number(this.getSettingsByKey(Settings.useWeatherAssistant)?.result.value ?? '0'))
                 const isWateringNeeded = await shouldWater({ logger: this.#loggerService, repository: this.#repository })
                 return !this.getIsSchedulerEnabled() || (useWeatherAssistant && !isWateringNeeded)
             }
