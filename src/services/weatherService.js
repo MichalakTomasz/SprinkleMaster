@@ -37,11 +37,10 @@ const readWeatherPrediction = path =>
 export const checkCurrentWeather = async args => {
     const weatherAssistantFile = 'weatherAssistant.json'
     const prediction = readWeatherPrediction('./' + weatherAssistantFile)  
-    /*
+    
     if (prediction) {
         return prediction
     }
-    */
 
     const location = await getLocation()
     if (!location) {
