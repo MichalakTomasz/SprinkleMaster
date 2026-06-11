@@ -37,9 +37,11 @@ const readWeatherPrediction = path =>
 export const checkCurrentWeather = async args => {
     const weatherAssistantFile = 'weatherAssistant.json'
     const prediction = readWeatherPrediction('./' + weatherAssistantFile)  
+    /*
     if (prediction) {
         return prediction
     }
+    */
 
     const location = await getLocation()
     if (!location) {
@@ -55,15 +57,18 @@ export const checkCurrentWeather = async args => {
         args?.logger.logInfo(`Weather API response: ${JSON.stringify(jsonResult)}`)
 
         saveWeatherPrediction('./' + weatherAssistantFile, jsonResult)
-        return jsonResult
+        return  {
+            weatherPrediction: jsonResult,
+            location: location
+        }
     } catch (e) {
         args?.logger.logError(`Weather API error: ${e.message}.`)
     }
 }
 
 export const shouldWater = async args => {
-    const prediction = await checkCurrentWeather(args)
-    const predictionSum = prediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
+    const { weatherPrediction, location } = await checkCurrentWeather(args)
+    const predictionSum = weatherPrediction?.hourly?.rain?.reduce((a, c) => a + c, 0)
     const isWaterNeeded = predictionSum <= 4
 
     if (!(await args.repository.isDailyPrediction())?.result ) {
