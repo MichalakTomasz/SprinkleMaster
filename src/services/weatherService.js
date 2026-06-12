@@ -2,6 +2,16 @@ import getLocation from './gpsService.js'
 import fetch from 'node-fetch'
 import fs from 'fs'
 
+const isToday = (date) => {
+    if (!date)
+        return false
+    const dateObj = new Date(date)
+    const now = new Date()
+    return dateObj.getDate() == now.getDate() && 
+    dateObj.getMonth() == now.getMonth() && 
+    dateObj.getFullYear() == now.getFullYear()
+}
+
 const utf8 = 'utf8'
  const saveWeatherPrediction = (path, weatherPrediction)  => {
     if (!path || !weatherPrediction)
@@ -24,7 +34,7 @@ const readWeatherPrediction = path =>
         const prediction = JSON.parse(fileContent)
         const dateString = prediction?.weatherPrediction?.hourly?.time[0]
         const date = new Date(dateString)
-        if (!date || date.getDate() != new Date().getDate())
+        if (!date || !isToday(date))
             return
 
         return prediction
@@ -38,7 +48,7 @@ export const checkCurrentWeather = async args => {
     const weatherAssistantFile = 'weatherAssistant.json'
     const prediction = readWeatherPrediction('./' + weatherAssistantFile)  
     
-    if (prediction?.weatherPrediction && prediction?.location) {
+    if (prediction?.weatherPrediction && prediction?.location && isToday(prediction?.date)) {
         return prediction
     }
 
@@ -55,13 +65,14 @@ export const checkCurrentWeather = async args => {
         const jsonResult = await result.json()
         args?.logger.logInfo(`Weather API response: ${JSON.stringify(jsonResult)}`)
 
-        const predictionToSave = {
+        const predictionresult = {
             weatherPrediction: jsonResult,
-            location: location
+            location: location,
+            date: new Date()
         }
-        saveWeatherPrediction('./' + weatherAssistantFile, predictionToSave)
+        saveWeatherPrediction('./' + weatherAssistantFile, predictionresult)
 
-        return  predictionToSave
+        return  predictionresult
     } catch (e) {
         args?.logger.logError(`Weather API error: ${e.message}.`)
     }
