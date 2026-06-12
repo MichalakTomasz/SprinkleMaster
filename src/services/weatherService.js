@@ -3,11 +3,11 @@ import fetch from 'node-fetch'
 import fs from 'fs'
 
 const utf8 = 'utf8'
- const saveWeatherPrediction = (path, weatherPredidtion)  => {
-    if (!path || !weatherPredidtion)
+ const saveWeatherPrediction = (path, weatherPrediction)  => {
+    if (!path || !weatherPrediction)
         return
     try {
-        fs.writeFileSync(path, JSON.stringify({ weatherPredidtion: weatherPredidtion }), utf8)
+        fs.writeFileSync(path, JSON.stringify(weatherPrediction), utf8)
     }
     catch (e) {
         return
@@ -21,8 +21,8 @@ const readWeatherPrediction = path =>
         if (!fileContent)
             return null
 
-        const prediction = JSON.parse(fileContent)?.weatherPredidtion
-        const dateString = prediction?.hourly?.time[0]
+        const prediction = JSON.parse(fileContent)
+        const dateString = prediction?.weatherPrediction?.hourly?.time[0]
         const date = new Date(dateString)
         if (!date || date.getDate() != new Date().getDate())
             return
@@ -38,7 +38,7 @@ export const checkCurrentWeather = async args => {
     const weatherAssistantFile = 'weatherAssistant.json'
     const prediction = readWeatherPrediction('./' + weatherAssistantFile)  
     
-    if (prediction) {
+    if (prediction?.weatherPrediction && prediction?.location) {
         return prediction
     }
 
@@ -55,11 +55,13 @@ export const checkCurrentWeather = async args => {
         const jsonResult = await result.json()
         args?.logger.logInfo(`Weather API response: ${JSON.stringify(jsonResult)}`)
 
-        saveWeatherPrediction('./' + weatherAssistantFile, jsonResult)
-        return  {
+        const predictionToSave = {
             weatherPrediction: jsonResult,
             location: location
         }
+        saveWeatherPrediction('./' + weatherAssistantFile, predictionToSave)
+
+        return  predictionToSave
     } catch (e) {
         args?.logger.logError(`Weather API error: ${e.message}.`)
     }
