@@ -636,7 +636,6 @@ export default class TaskManager {
                 t.devices?.some(v => !task.devices.some(td => td.id == v.id) && v.gpioPin.getState() == PinState.HIGH))
             
             const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
-            this.#loggerService.logInfo(`areAnyOtherValvesOpen: ${areAnyOtherValvesOpen}, areSomeTaskValvesOpen: ${areSomeTaskValvesOpen}`)
             if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
                 this.#pump?.gpioPin.setState(PinState.LOW)
                 const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
