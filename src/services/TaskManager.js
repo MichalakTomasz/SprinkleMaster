@@ -631,12 +631,12 @@ export default class TaskManager {
             if (!pumpResult?.isSuccess)
                 return pumpResult
         }
-
         if (state == PinState.LOW) {
             const areAnyOtherValvesOpen = this.#valveTasks.some(t => t.id != task.id && 
-                t.devices?.some(v => v.gpioPin.getState() == PinState.HIGH))
+                t.devices?.some(v => !task.devices.some(td => td.id == v.id) && v.gpioPin.getState() == PinState.HIGH))
             
             const areSomeTaskValvesOpen = devices.some(v => v.gpioPin.getState() == PinState.HIGH)
+            this.#loggerService.logInfo(`areAnyOtherValvesOpen: ${areAnyOtherValvesOpen}, areSomeTaskValvesOpen: ${areSomeTaskValvesOpen}`)
             if (!areAnyOtherValvesOpen && areSomeTaskValvesOpen) {
                 this.#pump?.gpioPin.setState(PinState.LOW)
                 const delay = parseInt(this.getSettingsByKey(Settings.pumpStopDelay).result?.value ?? 3000)
@@ -645,7 +645,7 @@ export default class TaskManager {
                 if (pumpState != PinState.LOW) {
                     return {
                         isSuccess: false,
-                        message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turnted off before Valves close.`,
+                        message: `Error, only Valves form task ${task.name} are open, but the Pump could not be turned off before Valves close.`,
                         status: StatusCode.InternalServerError
                     }
                 }
